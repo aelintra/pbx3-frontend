@@ -47,7 +47,9 @@ onMounted(async () => {
       </thead>
       <tbody>
         <tr v-for="q in queues" :key="q.pkey">
-          <td>{{ q.pkey }}</td>
+          <td>
+            <router-link :to="{ name: 'queue-detail', params: { pkey: q.pkey } }" class="cell-link">{{ q.pkey }}</router-link>
+          </td>
           <td>{{ q.cluster ?? '—' }}</td>
           <td>{{ q.name ?? '—' }}</td>
         </tr>
@@ -84,5 +86,12 @@ onMounted(async () => {
 }
 .table tbody tr:hover {
   background: #f8fafc;
+}
+.cell-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+.cell-link:hover {
+  text-decoration: underline;
 }
 </style>

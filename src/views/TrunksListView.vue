@@ -47,7 +47,9 @@ onMounted(async () => {
       </thead>
       <tbody>
         <tr v-for="t in trunks" :key="t.pkey">
-          <td>{{ t.pkey }}</td>
+          <td>
+            <router-link :to="{ name: 'trunk-detail', params: { pkey: t.pkey } }" class="cell-link">{{ t.pkey }}</router-link>
+          </td>
           <td>{{ t.cluster ?? '—' }}</td>
           <td>{{ t.technology ?? '—' }}</td>
         </tr>
@@ -84,5 +86,12 @@ onMounted(async () => {
 }
 .table tbody tr:hover {
   background: #f8fafc;
+}
+.cell-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+.cell-link:hover {
+  text-decoration: underline;
 }
 </style>
