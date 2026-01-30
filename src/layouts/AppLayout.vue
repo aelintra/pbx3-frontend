@@ -24,6 +24,7 @@ async function logout() {
         <router-link to="/tenants" class="nav-link" active-class="active">Tenants</router-link>
         <router-link to="/extensions" class="nav-link" active-class="active">Extensions</router-link>
         <router-link to="/trunks" class="nav-link" active-class="active">Trunks</router-link>
+        <router-link to="/queues" class="nav-link" active-class="active">Queues</router-link>
       </nav>
     </aside>
     <div class="main">
