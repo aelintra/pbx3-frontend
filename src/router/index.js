@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import AppLayout from '../layouts/AppLayout.vue'
 import LoginView from '../views/LoginView.vue'
 import TenantsListView from '../views/TenantsListView.vue'
-import ExtensionsView from '../views/ExtensionsView.vue'
+import ExtensionsListView from '../views/ExtensionsListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,7 +19,7 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/tenants' },
         { path: 'tenants', name: 'tenants', component: TenantsListView },
-        { path: 'extensions', name: 'extensions', component: ExtensionsView }
+        { path: 'extensions', name: 'extensions', component: ExtensionsListView }
       ]
     }
   ]
