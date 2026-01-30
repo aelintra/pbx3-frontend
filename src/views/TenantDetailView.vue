@@ -12,8 +12,11 @@ const editing = ref(false)
 const editDescription = ref('')
 const saveError = ref('')
 const saving = ref(false)
+const deleteError = ref('')
+const deleting = ref(false)
 
 const pkey = computed(() => route.params.pkey)
+const isDefault = computed(() => tenant.value?.pkey === 'default')
 
 async function fetchTenant() {
   if (!pkey.value) return
@@ -66,6 +69,24 @@ async function saveEdit(e) {
   }
 }
 
+async function doDelete() {
+  if (isDefault.value) {
+    deleteError.value = 'Cannot delete the default tenant.'
+    return
+  }
+  if (!confirm(`Delete tenant "${pkey.value}"? This cannot be undone.`)) return
+  deleteError.value = ''
+  deleting.value = true
+  try {
+    await getApiClient().delete(`tenants/${encodeURIComponent(pkey.value)}`)
+    router.push({ name: 'tenants' })
+  } catch (err) {
+    deleteError.value = err.data?.message ?? err.data?.Error ?? err.message ?? 'Failed to delete tenant'
+  } finally {
+    deleting.value = false
+  }
+}
+
 const detailFields = computed(() => {
   if (!tenant.value || typeof tenant.value !== 'object') return []
   const skip = new Set(['pkey'])
@@ -87,7 +108,17 @@ const detailFields = computed(() => {
     <template v-else-if="tenant">
       <p v-if="!editing" class="toolbar">
         <button type="button" class="edit-btn" @click="startEdit">Edit</button>
+        <button
+          v-if="!isDefault"
+          type="button"
+          class="delete-btn"
+          :disabled="deleting"
+          @click="doDelete"
+        >
+          {{ deleting ? 'Deleting…' : 'Delete tenant' }}
+        </button>
       </p>
+      <p v-if="deleteError" class="error">{{ deleteError }}</p>
       <form v-else class="edit-form" @submit="saveEdit">
         <label for="edit-description">description</label>
         <input
@@ -167,6 +198,23 @@ const detailFields = computed(() => {
 }
 .edit-btn:hover {
   background: #eff6ff;
+}
+.toolbar .delete-btn {
+  margin-left: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+  background: transparent;
+  border: 1px solid #fca5a5;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.toolbar .delete-btn:hover:not(:disabled) {
+  background: #fef2f2;
+}
+.toolbar .delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .edit-form {
   margin-bottom: 1rem;
