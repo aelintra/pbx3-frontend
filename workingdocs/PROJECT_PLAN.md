@@ -14,6 +14,19 @@ Discrete job steps. Each step is **testable**, **sign-off-able**, and **committa
 
 ---
 
+## Auth (Laravel Sanctum)
+
+pbx3api uses **Laravel Sanctum** (token-based). Flow:
+
+- **Login:** `POST {baseUrl}/auth/login` with body `{ email, password }`. Response: `{ accessToken, token_type: "Bearer" }`. Store **`accessToken`** as the Bearer token for all subsequent requests. **Each login generates a new token** (and the API invalidates the user’s previous tokens), so only the latest token is valid.
+- **Whoami:** `GET {baseUrl}/auth/whoami` with Bearer token returns the current user (optional for “Logged in as X”).
+- **Logout:** `GET {baseUrl}/auth/logout` with Bearer token **revokes the token on the server**. On Logout in the UI: call this endpoint (so Sanctum invalidates the token), then clear the auth store and redirect to `/login`. If the logout request fails (e.g. network), still clear the store and redirect.
+- **CORS:** Frontend and API are different origins (e.g. localhost:5173 vs instance:44300). pbx3api must allow the frontend origin in Laravel CORS config.
+
+Steps 5 (Login) and 7 (Layout / Logout) implement this.
+
+---
+
 ## Principles
 
 1. **One step at a time** — Finish, test, sign off, commit. Then move on.

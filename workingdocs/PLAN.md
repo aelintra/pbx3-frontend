@@ -34,7 +34,7 @@ The frontend’s job: provide a UI that calls the API to read/update data (CRUD)
 ## 3. Design constraints and principles
 
 - **Multi-instance:** Frontend can connect to **different PBX3 instances** (each has its own API base URL). Operator chooses or configures which instance they’re managing.
-- **Auth per instance:** Authenticate against that instance’s API (e.g. login → Bearer token). No central auth; token is scoped to one instance.
+- **Auth per instance:** Authenticate against that instance’s API (e.g. login → Bearer token). No central auth; token is scoped to one instance. pbx3api uses **Laravel Sanctum**: login returns `accessToken`; logout revokes the token via `GET /auth/logout`. See **PROJECT_PLAN.md** → “Auth (Laravel Sanctum)” for details used in Steps 5 and 7.
 - **API as single source of truth:** All persistence and business logic live in PBX3 (DB + generator + Asterisk). Frontend is stateless; it only calls the API and renders responses.
 - **Data vs operational:** UX can distinguish **data** (lists, forms, create/edit/delete) from **operational** (buttons for “take backup”, “restart firewall”, “start/stop PBX”; read-only live state panels).
 - **Read-only vs admin:** API has admin-only vs non-admin endpoints; frontend should respect that (e.g. show/hide or disable by role if we ever get role from whoami).

@@ -16,6 +16,12 @@ Quick reference for new chats. See **PLAN.md** for full plan and design.
 
 ---
 
+## Users (API / DB)
+
+pbx3api **users** table (SQLite): `id`, `cluster`, `name`, `email`, `email_verified_at`, `password`, `role`, `remember_token`, `created_at`, `updated_at`. Sample: `id=1`, `cluster=default`, `name=admin`, `email=admin@pbx3.com`, `role=isAdmin`. **whoami** and login responses can expose `name`, `email`, `role` for “Logged in as X” and admin-only UI. Sanctum tokens live in **personal_access_tokens**.
+
+---
+
 ## Key references
 
 - **pbx3api/docs/** — api.md, auth.md, general.md (full API).
