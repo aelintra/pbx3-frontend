@@ -6,6 +6,7 @@ import TenantsListView from '../views/TenantsListView.vue'
 import TenantDetailView from '../views/TenantDetailView.vue'
 import ExtensionsListView from '../views/ExtensionsListView.vue'
 import ExtensionDetailView from '../views/ExtensionDetailView.vue'
+import TrunksListView from '../views/TrunksListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,7 +24,8 @@ const router = createRouter({
         { path: 'tenants', name: 'tenants', component: TenantsListView },
         { path: 'tenants/:pkey', name: 'tenant-detail', component: TenantDetailView },
         { path: 'extensions', name: 'extensions', component: ExtensionsListView },
-        { path: 'extensions/:pkey', name: 'extension-detail', component: ExtensionDetailView }
+        { path: 'extensions/:pkey', name: 'extension-detail', component: ExtensionDetailView },
+        { path: 'trunks', name: 'trunks', component: TrunksListView }
       ]
     }
   ]
