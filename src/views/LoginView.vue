@@ -30,7 +30,7 @@ async function onSubmit(e) {
     } catch {
       // whoami optional
     }
-    router.push('/')
+    router.push('/tenants')
   } catch (err) {
     if (err.status === 401) {
       error.value = 'Invalid email or password'
