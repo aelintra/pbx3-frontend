@@ -8,6 +8,15 @@ const router = useRouter()
 const trunk = ref(null)
 const loading = ref(true)
 const error = ref('')
+const editing = ref(false)
+const editDescription = ref('')
+const editActive = ref('YES')
+const editCluster = ref('default')
+const editHost = ref('')
+const saveError = ref('')
+const saving = ref(false)
+const deleteError = ref('')
+const deleting = ref(false)
 
 const pkey = computed(() => route.params.pkey)
 
@@ -17,6 +26,10 @@ async function fetchTrunk() {
   error.value = ''
   try {
     trunk.value = await getApiClient().get(`trunks/${encodeURIComponent(pkey.value)}`)
+    editDescription.value = trunk.value?.description ?? ''
+    editActive.value = trunk.value?.active ?? 'YES'
+    editCluster.value = trunk.value?.cluster ?? 'default'
+    editHost.value = trunk.value?.host ?? ''
   } catch (err) {
     error.value = err.data?.message || err.message || 'Failed to load trunk'
     trunk.value = null
@@ -30,6 +43,61 @@ watch(pkey, fetchTrunk)
 
 function goBack() {
   router.push({ name: 'trunks' })
+}
+
+function startEdit() {
+  editDescription.value = trunk.value?.description ?? ''
+  editActive.value = trunk.value?.active ?? 'YES'
+  editCluster.value = trunk.value?.cluster ?? 'default'
+  editHost.value = trunk.value?.host ?? ''
+  saveError.value = ''
+  editing.value = true
+}
+
+function cancelEdit() {
+  editing.value = false
+  saveError.value = ''
+}
+
+async function saveEdit(e) {
+  e.preventDefault()
+  saveError.value = ''
+  saving.value = true
+  try {
+    await getApiClient().put(`trunks/${encodeURIComponent(pkey.value)}`, {
+      description: editDescription.value.trim() || undefined,
+      active: editActive.value,
+      cluster: editCluster.value.trim(),
+      host: editHost.value.trim()
+    })
+    await fetchTrunk()
+    editing.value = false
+  } catch (err) {
+    const msg =
+      err.data?.description?.[0] ??
+      err.data?.active?.[0] ??
+      err.data?.cluster?.[0] ??
+      err.data?.host?.[0] ??
+      err.data?.message ??
+      err.message
+    saveError.value = msg || 'Failed to update trunk'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doDelete() {
+  if (!confirm(`Delete trunk "${pkey.value}"? This cannot be undone.`)) return
+  deleteError.value = ''
+  deleting.value = true
+  try {
+    await getApiClient().delete(`trunks/${encodeURIComponent(pkey.value)}`)
+    router.push({ name: 'trunks' })
+  } catch (err) {
+    deleteError.value = err.data?.message ?? err.message ?? 'Failed to delete trunk'
+  } finally {
+    deleting.value = false
+  }
 }
 
 const detailFields = computed(() => {
@@ -51,6 +119,36 @@ const detailFields = computed(() => {
     <p v-if="loading" class="loading">Loading…</p>
     <p v-else-if="error" class="error">{{ error }}</p>
     <template v-else-if="trunk">
+      <p v-if="!editing" class="toolbar">
+        <button type="button" class="edit-btn" @click="startEdit">Edit</button>
+        <button
+          type="button"
+          class="delete-btn"
+          :disabled="deleting"
+          @click="doDelete"
+        >
+          {{ deleting ? 'Deleting…' : 'Delete trunk' }}
+        </button>
+      </p>
+      <p v-if="deleteError" class="error">{{ deleteError }}</p>
+      <form v-else-if="editing" class="edit-form" @submit="saveEdit">
+        <label for="edit-description">description</label>
+        <input id="edit-description" v-model="editDescription" type="text" class="edit-input" />
+        <label for="edit-active">active</label>
+        <select id="edit-active" v-model="editActive" class="edit-input">
+          <option value="YES">YES</option>
+          <option value="NO">NO</option>
+        </select>
+        <label for="edit-cluster">cluster</label>
+        <input id="edit-cluster" v-model="editCluster" type="text" class="edit-input" required />
+        <label for="edit-host">host</label>
+        <input id="edit-host" v-model="editHost" type="text" class="edit-input" required />
+        <p v-if="saveError" class="error">{{ saveError }}</p>
+        <div class="edit-actions">
+          <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+          <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
+        </div>
+      </form>
       <dl class="detail-list">
         <dt>pkey</dt>
         <dd>{{ trunk.pkey }}</dd>
@@ -101,5 +199,85 @@ const detailFields = computed(() => {
 }
 .detail-list dd {
   margin: 0;
+}
+.toolbar {
+  margin: 0 0 0.75rem 0;
+}
+.edit-btn,
+.delete-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.edit-btn {
+  color: #2563eb;
+  background: transparent;
+  border: 1px solid #93c5fd;
+}
+.edit-btn:hover {
+  background: #eff6ff;
+}
+.delete-btn {
+  color: #dc2626;
+  background: transparent;
+  border: 1px solid #fca5a5;
+}
+.delete-btn:hover:not(:disabled) {
+  background: #fef2f2;
+}
+.delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.edit-form {
+  margin-bottom: 1rem;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.edit-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.edit-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+.edit-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.edit-actions button {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.edit-actions button[type="submit"] {
+  color: #fff;
+  background: #2563eb;
+  border: none;
+}
+.edit-actions button[type="submit"]:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.edit-actions button.secondary {
+  color: #64748b;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+}
+.edit-actions button.secondary:hover {
+  background: #f1f5f9;
 }
 </style>

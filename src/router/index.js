@@ -9,6 +9,7 @@ import ExtensionsListView from '../views/ExtensionsListView.vue'
 import ExtensionCreateView from '../views/ExtensionCreateView.vue'
 import ExtensionDetailView from '../views/ExtensionDetailView.vue'
 import TrunksListView from '../views/TrunksListView.vue'
+import TrunkCreateView from '../views/TrunkCreateView.vue'
 import TrunkDetailView from '../views/TrunkDetailView.vue'
 import QueuesListView from '../views/QueuesListView.vue'
 import QueueDetailView from '../views/QueueDetailView.vue'
@@ -33,6 +34,7 @@ const router = createRouter({
         { path: 'extensions/new', name: 'extension-create', component: ExtensionCreateView },
         { path: 'extensions/:pkey', name: 'extension-detail', component: ExtensionDetailView },
         { path: 'trunks', name: 'trunks', component: TrunksListView },
+        { path: 'trunks/new', name: 'trunk-create', component: TrunkCreateView },
         { path: 'trunks/:pkey', name: 'trunk-detail', component: TrunkDetailView },
         { path: 'queues', name: 'queues', component: QueuesListView },
         { path: 'queues/:pkey', name: 'queue-detail', component: QueueDetailView }
