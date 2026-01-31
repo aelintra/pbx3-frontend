@@ -6,6 +6,8 @@ Discrete job steps. Each step is **testable**, **sign-off-able**, and **committa
 
 ## Current state (for the next chat)
 
+**Last session:** Extensions panel UX complete: toasts, delete confirmation modal, sortable-column affordance (⇅), tenant column clickable → tenant-detail, Edit/Delete as icons (pencil/trash) with tooltips. Pattern doc (PANEL_PATTERN.md) and AI-REVIEW-OF-UX.md updated. All committed: frontend branch **extensions-buildout**, API branch **newpanels** (extension delete resilient to missing Cos tables; ValidateClusterAccess/routes typo fix; docs + test/ added).
+
 **Done:** Steps 1–17 plus Steps 18+ (Tenants, Extensions, Trunks, Queues, Agents, Routes, IVRs, Inbound routes — full CRUD where applicable; Trunk/Queue/Extension detail + edit/delete; Backups page implemented but **parked**). Default after login is **Home** (dashboard): PBX status via `GET syscommands/pbxrunstate` + Refresh, and actions Commit / Start / Stop / Reboot with confirmations. Auth: login, sessionStorage persist, route guard, whoami in layout.
 
 **Parked:** Backups — review after first CRUD set; behaviour may depend on PBX3 internals.
