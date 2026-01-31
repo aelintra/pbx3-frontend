@@ -14,6 +14,7 @@ import TrunkDetailView from '../views/TrunkDetailView.vue'
 import QueuesListView from '../views/QueuesListView.vue'
 import QueueCreateView from '../views/QueueCreateView.vue'
 import QueueDetailView from '../views/QueueDetailView.vue'
+import BackupsListView from '../views/BackupsListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,7 +40,8 @@ const router = createRouter({
         { path: 'trunks/:pkey', name: 'trunk-detail', component: TrunkDetailView },
         { path: 'queues', name: 'queues', component: QueuesListView },
         { path: 'queues/new', name: 'queue-create', component: QueueCreateView },
-        { path: 'queues/:pkey', name: 'queue-detail', component: QueueDetailView }
+        { path: 'queues/:pkey', name: 'queue-detail', component: QueueDetailView },
+        { path: 'backups', name: 'backups', component: BackupsListView }
       ]
     }
   ]

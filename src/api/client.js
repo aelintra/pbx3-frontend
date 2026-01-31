@@ -58,9 +58,30 @@ export function createApiClient(baseUrl, token) {
     }
   }
 
+  async function getBlob(path) {
+    const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
+    const res = await fetch(url, { method: 'GET', headers: { ...headers } })
+    if (!res.ok) {
+      const text = await res.text()
+      const err = new Error(`API GET ${path}: ${res.status} ${res.statusText}`)
+      err.status = res.status
+      err.response = text
+      try {
+        err.data = JSON.parse(text)
+      } catch {
+        err.data = null
+      }
+      throw err
+    }
+    return res.blob()
+  }
+
   return {
     get(path) {
       return request('GET', path)
+    },
+    getBlob(path) {
+      return getBlob(path)
     },
     post(path, body) {
       return request('POST', path, body)
