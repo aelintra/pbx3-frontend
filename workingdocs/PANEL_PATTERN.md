@@ -123,6 +123,7 @@ Internally, tenants are **clusters** (cluster table); data rows often store a cl
 - **How to resolve:**  
   - **Preferred:** API resolves cluster id/shortuid → tenant pkey and returns a **`tenant_pkey`** (or `cluster_pkey`) field on each item (e.g. Extensions index). Frontend displays `item.tenant_pkey ?? item.cluster`.  
   - **Fallback:** Frontend fetches `GET tenants`, builds a map (cluster id/shortuid/pkey → tenant pkey), and resolves for display. Use when the API does not yet expose `tenant_pkey`. **The map must include tenant id, shortuid, and pkey → tenant pkey** (e.g. for each tenant: `map.set(id, pkey)`, `map.set(shortuid, pkey)`, `map.set(pkey, pkey)`). Then when the API returns `item.cluster` as tenant id, shortuid, or pkey, the column shows **tenant pkey** (never shortuid or id) and the link to tenant detail uses that pkey.
+- **List and detail both:** Use the same resolution (and the same full map: id, shortuid, pkey) in **both** the list view and the detail view for that resource. It is easy to add the map only in the list and forget the detail view; if the detail view also displays Tenant (e.g. Trunk detail, Extension detail), it must build and use the same map so the Tenant field shows pkey there too.
 - **Sort/filter:** When sorting or filtering by tenant, use the **resolved pkey** (so “Tenant” column sort/filter is by tenant name, not by id/shortuid).
 
 Apply this to every data panel that has a cluster/tenant column (Extensions, Trunks, Queues, Agents, Routes, IVRs, Inbound routes, etc.).
@@ -154,6 +155,31 @@ There is **no explicit min-width** in code for list tables. Layout uses: sidebar
 
 ---
 
+## 5.4 Immutable values: display treatment
+
+Some fields are **immutable** (set by the system or at create, not editable later). Give them a consistent visual treatment so users can see at a glance which values cannot be changed.
+
+**Recommendation: lowlight (muted), not highlight.** Treat immutable values as secondary/reference info: muted text color and optionally a very subtle background. This reads as "fixed / system" without drawing undue attention. Avoid "highlight" (bright or strong background) so users don't assume they can edit them.
+
+**Where to apply:**
+
+- **Detail view (read-only):** In Identity and other blocks, wrap or class the **value** of immutable fields. Use a class on the `<dd>` (e.g. `<dd class="value-immutable">`) for fields that are immutable: **KSUID** (id), **Local UID** (shortuid), **SIP Identity** (shortuid), and any other API-immutable identifiers. Editable fields stay default styling.
+- **Edit form:** For immutable fields shown in the form, use the same class on read-only text (e.g. `<p class="detail-readonly value-immutable">`) or on a disabled input. Existing `.detail-readonly` can be combined with or replaced by `.value-immutable` for consistency.
+- **List table (optional):** For columns that are always immutable (e.g. KSUID, Local UID), you may apply a muted cell class (e.g. `.cell-immutable`) so those columns read as "system" data. Primary columns (name/pkey, Tenant) stay default.
+
+**CSS (scoped):** Use a single class (e.g. `.value-immutable`) with:
+
+- **Muted text:** `color: #64748b` (or similar slate-500) so the value is clearly secondary but still readable. Do not go lighter than WCAG AA contrast on the page background.
+- **Optional subtle background:** `background: #f8fafc` (or similar) on the cell/block to reinforce "not editable" without looking disabled. Prefer no border so it doesn't compete with actual form inputs.
+
+**Which fields are immutable:** Typically **id** (KSUID), **shortuid** (Local UID / SIP Identity). **pkey** may be immutable for some resources (e.g. extension number change not yet supported). Per resource, mark only fields that the API does not allow updating.
+
+**Accessibility:** Keep contrast sufficient. Optionally add `title="Immutable"` or `aria-describedby` on the value so assistive tech can explain that the field is not editable.
+
+Apply this treatment consistently across list/detail/edit so immutable values are recognizable in every panel.
+
+---
+
 ## 6. Optional per-resource extras
 
 - **Runtime or live state:** If the API has a separate endpoint (e.g. `GET extensions/{id}/runtime`), add a small section or tab on the detail view: fetch on load, display read-only; optional edit form for `PUT .../runtime` fields.
@@ -171,7 +197,7 @@ When adding a new resource panel (or refactoring an existing one):
 3. Implement Create: back, form, actions, success → detail.
 4. Implement Detail: back, toolbar (Edit / Delete), **Per §4.1** use the **detail content blocks** (Identity, second section e.g. Transport or Settings, Advanced reveal). Edit form with all editable API fields, delete with confirm. **Per §4:** when `route.query.edit` is set after load, call `startEdit()` so list Edit links land in edit mode.
 5. Reuse the CSS class names from this doc so styling stays consistent (copy from an existing panel, e.g. Extensions or Tenants, then adjust for fields).
-6. **Tenant column:** If the resource has a cluster/tenant, show **Tenant** (tenant pkey) per §5.1 — API returns `tenant_pkey` or frontend resolves from GET tenants.
+6. **Tenant column:** If the resource has a cluster/tenant, show **Tenant** (tenant pkey) per §5.1 — API returns `tenant_pkey` or frontend resolves from GET tenants. **Use the same resolution in both list and detail:** build the map (id, shortuid, pkey → tenant pkey) and use it in the list view and in the detail view so the Tenant field always shows pkey everywhere.
 7. **Success toasts:** After successful save or delete, call `useToastStore().show(message)` per §5.2 so the user gets positive confirmation.
 
 ---

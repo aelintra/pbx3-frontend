@@ -20,6 +20,8 @@ Discrete job steps. Each step is **testable**, **sign-off-able**, and **committa
 
 **To-do (Tenants – Timer status / masteroclo):** API can return null for tenant `masteroclo` (DB column has no DEFAULT; existing rows may be NULL). Frontend currently shows "AUTO" when null (sloppy but works). Prefer API fix: e.g. Tenant model accessor that returns `masteroclo ?? 'AUTO'`, or DB default + backfill, so the API always sends a value and the list doesn’t have to guess.
 
+**To-do (Field mutability):** Immutable-field treatment (lowlight in list/detail/edit) is currently hard-coded per resource in the frontend (e.g. Extensions: pkey, shortuid, id, macaddr, device, devicemodel). Prefer moving mutability to the API later (e.g. per-resource schema or field metadata like `read_only` / `immutable`) so the frontend can derive which fields to lowlight without per-panel lists in code.
+
 **Review later (UX – inline edit):** Consider inline edit for list rows *after* the system runs nicely on the current list → detail/edit pattern. The old system had inline edit in some areas; on bigger rows it looked clunky and took extra real estate on busy screens. Revisit only when the main pattern is stable and we want to optimise for high-frequency small edits.
 
 **Next chat:** Read **workingdocs/PROJECT_PLAN.md**, **workingdocs/SYSTEM_CONTEXT.md**, and **workingdocs/README.md**. Pick up from here; next steps could be e.g. push pending commits, revisit Backups, or start API work for user management or tt_help_core before adding frontend for either.

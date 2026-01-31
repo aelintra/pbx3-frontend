@@ -35,10 +35,12 @@ function normalizeList(response) {
   return []
 }
 
+/** Map cluster id, shortuid, or pkey → tenant pkey for display (always show pkey, not shortuid). */
 const clusterToTenantPkey = computed(() => {
   const map = new Map()
   for (const t of tenants.value) {
     if (t.id != null) map.set(String(t.id), t.pkey ?? t.id)
+    if (t.shortuid != null) map.set(String(t.shortuid), t.pkey ?? t.shortuid)
     if (t.pkey != null) map.set(String(t.pkey), t.pkey)
   }
   return map
@@ -154,15 +156,15 @@ async function confirmAndDelete() {
   }
 }
 
-/** Identity section: name, Local UID, KSUID, description */
+/** Identity section: immutable fields grouped first, then editable. */
 const identityFields = computed(() => {
   if (!trunk.value) return []
   const t = trunk.value
   return [
-    { label: 'name', value: t.pkey ?? '—' },
-    { label: 'Local UID', value: t.shortuid ?? '—' },
-    { label: 'KSUID', value: t.id ?? '—' },
-    { label: 'description', value: t.description ?? '—' }
+    { label: 'name', value: t.pkey ?? '—', immutable: true },
+    { label: 'Local UID', value: t.shortuid ?? '—', immutable: true },
+    { label: 'KSUID', value: t.id ?? '—', immutable: true },
+    { label: 'description', value: t.description ?? '—', immutable: false }
   ]
 })
 
@@ -235,7 +237,7 @@ const otherFields = computed(() => {
             <dl class="detail-list">
               <template v-for="f in identityFields" :key="f.label">
                 <dt>{{ f.label }}</dt>
-                <dd>{{ f.value }}</dd>
+                <dd :class="{ 'value-immutable': f.immutable }" :title="f.immutable ? 'Immutable' : undefined">{{ f.value }}</dd>
               </template>
             </dl>
           </section>
@@ -319,6 +321,16 @@ const otherFields = computed(() => {
   color: #475569;
 }
 .detail-list dd {
+  margin: 0;
+}
+.value-immutable {
+  color: #64748b;
+  background: #f8fafc;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+.detail-list dd.value-immutable {
+  padding: 0.125rem 0.25rem;
   margin: 0;
 }
 .detail-content {

@@ -135,20 +135,20 @@ async function fetchRuntime() {
   }
 }
 
-/** Identity section fields for view mode */
+/** Identity section fields for view mode. Immutable fields grouped first, then editable. */
 const identityFields = computed(() => {
   if (!extension.value) return []
   const ext = extension.value
   return [
-    { label: 'Ext', value: ext.pkey ?? '—' },
-    { label: 'SIP Identity', value: ext.shortuid ?? '—' },
-    { label: 'KSUID', value: ext.id ?? '—' },
-    { label: 'Tenant', value: tenantPkeyDisplay(ext.cluster) },
-    { label: 'User', value: ext.desc ?? ext.description ?? '—' },
-    { label: 'Device', value: ext.device ?? '—' },
-    { label: 'Device model', value: ext.devicemodel ?? '—' },
-    { label: 'MAC', value: ext.macaddr ?? '—' },
-    { label: 'Active?', value: ext.active ?? '—' }
+    { label: 'Ext', value: ext.pkey ?? '—', immutable: true },
+    { label: 'SIP Identity', value: ext.shortuid ?? '—', immutable: true },
+    { label: 'KSUID', value: ext.id ?? '—', immutable: true },
+    { label: 'MAC', value: ext.macaddr ?? '—', immutable: true },
+    { label: 'Device', value: ext.device ?? '—', immutable: true },
+    { label: 'Device model', value: ext.devicemodel ?? '—', immutable: true },
+    { label: 'Tenant', value: tenantPkeyDisplay(ext.cluster), immutable: false },
+    { label: 'User', value: ext.desc ?? ext.description ?? '—', immutable: false },
+    { label: 'Active?', value: ext.active ?? '—', immutable: false }
   ]
 })
 
@@ -299,7 +299,7 @@ async function doDelete() {
         <form v-else-if="editing" class="edit-form" @submit="saveEdit">
           <h2 class="detail-heading">Identity</h2>
           <label>SIP Identity</label>
-          <p class="detail-readonly">{{ extension.shortuid ?? '—' }}</p>
+          <p class="detail-readonly value-immutable" title="Immutable">{{ extension.shortuid ?? '—' }}</p>
           <label for="edit-tenant">Tenant</label>
           <select id="edit-tenant" v-model="editCluster" class="edit-input" required>
             <option v-for="opt in tenantOptionsForSelect" :key="opt" :value="opt">{{ opt }}</option>
@@ -344,7 +344,7 @@ async function doDelete() {
             <dl class="detail-list">
               <template v-for="f in identityFields" :key="f.label">
                 <dt>{{ f.label }}</dt>
-                <dd>{{ f.value }}</dd>
+                <dd :class="{ 'value-immutable': f.immutable }" :title="f.immutable ? 'Immutable' : undefined">{{ f.value }}</dd>
               </template>
             </dl>
           </section>
@@ -573,6 +573,16 @@ async function doDelete() {
   margin: 0 0 0.5rem 0;
   font-size: 0.9375rem;
   color: #64748b;
+}
+.value-immutable {
+  color: #64748b;
+  background: #f8fafc;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+.detail-list dd.value-immutable {
+  padding: 0.125rem 0.25rem;
+  margin: 0;
 }
 .edit-actions {
   display: flex;

@@ -192,7 +192,7 @@ onMounted(loadTenants)
             <td>
               <router-link :to="{ name: 'tenant-detail', params: { pkey: t.pkey } }" class="cell-link">{{ t.pkey }}</router-link>
             </td>
-            <td>{{ localUidDisplay(t) }}</td>
+            <td class="cell-immutable" title="Immutable">{{ localUidDisplay(t) }}</td>
             <td>{{ t.description ?? '—' }}</td>
             <td>{{ t.clusterclid != null && t.clusterclid !== '' ? t.clusterclid : '—' }}</td>
             <td>{{ t.abstimeout != null && t.abstimeout !== '' ? t.abstimeout : '—' }}</td>
@@ -280,6 +280,10 @@ onMounted(loadTenants)
 .table th {
   font-weight: 600;
   color: #475569;
+  background: #f8fafc;
+}
+.cell-immutable {
+  color: #64748b;
   background: #f8fafc;
 }
 .th-sortable {

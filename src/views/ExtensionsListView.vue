@@ -216,7 +216,7 @@ onMounted(loadExtensions)
             <td>
               <router-link :to="{ name: 'extension-detail', params: { pkey: e.pkey } }" class="cell-link">{{ e.pkey }}</router-link>
             </td>
-            <td>{{ sipIdentityDisplay(e) }}</td>
+            <td class="cell-immutable" title="Immutable">{{ sipIdentityDisplay(e) }}</td>
             <td>
               <router-link
                 v-if="tenantPkeyDisplay(e) !== '—'"
@@ -226,8 +226,8 @@ onMounted(loadExtensions)
               <span v-else>—</span>
             </td>
             <td :title="(e.desc ?? e.cname ?? e.description ?? '')">{{ userDisplay(e) }}</td>
-            <td>{{ e.device ?? e.technology ?? '—' }}</td>
-            <td>{{ e.macaddr ? e.macaddr : 'N/A' }}</td>
+            <td class="cell-immutable" title="Immutable">{{ e.device ?? e.technology ?? '—' }}</td>
+            <td class="cell-immutable" :title="e.macaddr ? 'Immutable' : undefined">{{ e.macaddr ? e.macaddr : 'N/A' }}</td>
             <td>{{ e.transport ?? '—' }}</td>
             <td>{{ e.active ?? '—' }}</td>
             <td>
@@ -310,6 +310,10 @@ onMounted(loadExtensions)
 .table th {
   font-weight: 600;
   color: #475569;
+  background: #f8fafc;
+}
+.cell-immutable {
+  color: #64748b;
   background: #f8fafc;
 }
 .th-sortable {

@@ -47,6 +47,12 @@ function tenantPkeyDisplay(trunk) {
   return clusterToTenantPkey.value.get(s) ?? s
 }
 
+/** Local UID (shortuid) for display */
+function localUidDisplay(tr) {
+  const v = tr.shortuid
+  return v == null || v === '' ? '—' : String(v)
+}
+
 // --- Filter ---
 const filteredTrunks = computed(() => {
   const list = trunks.value
@@ -55,11 +61,12 @@ const filteredTrunks = computed(() => {
   const map = clusterToTenantPkey.value
   return list.filter((tr) => {
     const pkey = (tr.pkey ?? '').toString().toLowerCase()
+    const shortuid = (tr.shortuid ?? '').toString().toLowerCase()
     const tenantPkey = (tr.tenant_pkey ?? map.get(String(tr.cluster)) ?? tr.cluster ?? '').toString().toLowerCase()
     const desc = (tr.description ?? '').toString().toLowerCase()
     const host = (tr.host ?? '').toString().toLowerCase()
     const active = (tr.active ?? '').toString().toLowerCase()
-    return pkey.includes(q) || tenantPkey.includes(q) || desc.includes(q) || host.includes(q) || active.includes(q)
+    return pkey.includes(q) || shortuid.includes(q) || tenantPkey.includes(q) || desc.includes(q) || host.includes(q) || active.includes(q)
   })
 })
 
@@ -156,7 +163,7 @@ onMounted(loadTrunks)
           v-model="filterText"
           type="search"
           class="filter-input"
-          placeholder="Filter by name, tenant, description, host, or active"
+          placeholder="Filter by name, Local UID, tenant, description, host, or active"
           aria-label="Filter trunks"
         />
       </p>
@@ -176,6 +183,9 @@ onMounted(loadTrunks)
           <tr>
             <th class="th-sortable" title="Click to sort" :class="sortClass('pkey')" @click="setSort('pkey')">
               name
+            </th>
+            <th class="th-sortable" title="Click to sort" :class="sortClass('shortuid')" @click="setSort('shortuid')">
+              Local UID
             </th>
             <th class="th-sortable" title="Click to sort" :class="sortClass('cluster')" @click="setSort('cluster')">
               Tenant
@@ -198,6 +208,7 @@ onMounted(loadTrunks)
             <td>
               <router-link :to="{ name: 'trunk-detail', params: { pkey: tr.pkey } }" class="cell-link">{{ tr.pkey }}</router-link>
             </td>
+            <td class="cell-immutable" title="Immutable">{{ localUidDisplay(tr) }}</td>
             <td>
               <router-link
                 v-if="tenantPkeyDisplay(tr) !== '—'"
@@ -289,6 +300,10 @@ onMounted(loadTrunks)
 .table th {
   font-weight: 600;
   color: #475569;
+  background: #f8fafc;
+}
+.cell-immutable {
+  color: #64748b;
   background: #f8fafc;
 }
 .th-sortable {
