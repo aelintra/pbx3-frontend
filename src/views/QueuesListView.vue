@@ -33,6 +33,9 @@ onMounted(async () => {
 <template>
   <div>
     <h1>Queues</h1>
+    <p class="toolbar">
+      <router-link :to="{ name: 'queue-create' }" class="add-btn">Add queue</router-link>
+    </p>
 
     <p v-if="loading" class="loading">Loading queues from API…</p>
     <p v-else-if="error" class="error">{{ error }}</p>
@@ -93,5 +96,21 @@ onMounted(async () => {
 }
 .cell-link:hover {
   text-decoration: underline;
+}
+.toolbar {
+  margin: 0.75rem 0 0 0;
+}
+.add-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #fff;
+  background: #2563eb;
+  border-radius: 0.375rem;
+  text-decoration: none;
+}
+.add-btn:hover {
+  background: #1d4ed8;
 }
 </style>
