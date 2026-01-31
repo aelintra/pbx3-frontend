@@ -33,6 +33,7 @@ async function logout() {
   <div class="app-layout">
     <aside class="sidebar">
       <nav class="nav">
+        <router-link to="/" class="nav-link" active-class="active" exact-active-class="active">Home</router-link>
         <router-link to="/tenants" class="nav-link" active-class="active">Tenants</router-link>
         <router-link to="/extensions" class="nav-link" active-class="active">Extensions</router-link>
         <router-link to="/trunks" class="nav-link" active-class="active">Trunks</router-link>

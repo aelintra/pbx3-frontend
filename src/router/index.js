@@ -27,6 +27,7 @@ import IvrDetailView from '../views/IvrDetailView.vue'
 import InboundRoutesListView from '../views/InboundRoutesListView.vue'
 import InboundRouteCreateView from '../views/InboundRouteCreateView.vue'
 import InboundRouteDetailView from '../views/InboundRouteDetailView.vue'
+import DashboardView from '../views/DashboardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,7 +41,7 @@ const router = createRouter({
       path: '/',
       component: AppLayout,
       children: [
-        { path: '', redirect: '/tenants' },
+        { path: '', name: 'dashboard', component: DashboardView },
         { path: 'tenants', name: 'tenants', component: TenantsListView },
         { path: 'tenants/new', name: 'tenant-create', component: TenantCreateView },
         { path: 'tenants/:pkey', name: 'tenant-detail', component: TenantDetailView },
