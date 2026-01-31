@@ -171,6 +171,12 @@ Each new step gets a row: Deliverable, Test, Sign-off, Commit.
 
 ---
 
+## Parked / review after first CRUD set
+
+- **Backups:** Backups page (list, create new, download, delete) is implemented but does not work as expected; behaviour may be due to hidden functionality in PBX3 that is not visible in the API docs. Park Backups for now. **Review after this first set of CRUD panels is complete** — re-test against live PBX3 and adjust or fix as needed.
+
+---
+
 ## How to use this plan
 
 1. Start with **Step 1**. Do only that step; test; sign off; commit.
