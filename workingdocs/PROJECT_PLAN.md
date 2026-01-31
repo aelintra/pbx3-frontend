@@ -26,7 +26,9 @@ Discrete job steps. Each step is **testable**, **sign-off-able**, and **committa
 
 **To-do (create panels):** Standardize remaining create panels per PANEL_PATTERN.md §3: **Extension**, **Trunk**, **Route**, **Queue**, **Agent**, **IVR**. For each: (a) preset create-form fields from DB SQL DEFAULTs and model `$attributes`; (b) group fields into Identity, Settings (or Transport), and optional Advanced; (c) use segmented pills for boolean and short fixed-choice fields instead of `<select>`. Tenant and Inbound route create are already done; use them as reference.
 
-**Next chat:** Read **workingdocs/PROJECT_PLAN.md** (§ Current state), **workingdocs/SYSTEM_CONTEXT.md**, and **workingdocs/README.md**. Pick up from here; next steps could be e.g. create-panel standardization (see to-do above), push/pull if needed, revisit Backups, or API work for user management or tt_help_core.
+**Complex create flows (planning):** For resources where the old system used a **type chooser** and conditional fields (DDI/Inbound routes, Extensions, Trunks, IVRs), we decided: **one create view per resource + type chooser + conditional fields + one polymorphic create API per resource**. See **workingdocs/COMPLEX_CREATE_PLAN.md** for approach, current state (Trunk frontend + API), trunk-first plan (Phase 1 frontend, Phase 2 API fix, later full five types), and wizardnotes references. Trunk is first because it is the simplest type-chooser create (one row, API already supports GeneralSIP and GeneralIAX2). API bug: TrunkController::save line 118 sets `technology = peername` for IAX2; should be `technology = 'IAX2'`.
+
+**Next chat:** Read **workingdocs/PROJECT_PLAN.md** (§ Current state), **workingdocs/COMPLEX_CREATE_PLAN.md** (trunk-first plan), **workingdocs/SYSTEM_CONTEXT.md**, and **workingdocs/README.md**. Proceed with trunk create type-chooser (Phase 1 in COMPLEX_CREATE_PLAN), or push/pull, revisit Backups, or API work for user management or tt_help_core.
 
 ---
 
