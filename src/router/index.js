@@ -15,6 +15,18 @@ import QueuesListView from '../views/QueuesListView.vue'
 import QueueCreateView from '../views/QueueCreateView.vue'
 import QueueDetailView from '../views/QueueDetailView.vue'
 import BackupsListView from '../views/BackupsListView.vue'
+import AgentsListView from '../views/AgentsListView.vue'
+import AgentCreateView from '../views/AgentCreateView.vue'
+import AgentDetailView from '../views/AgentDetailView.vue'
+import RoutesListView from '../views/RoutesListView.vue'
+import RouteCreateView from '../views/RouteCreateView.vue'
+import RouteDetailView from '../views/RouteDetailView.vue'
+import IvrsListView from '../views/IvrsListView.vue'
+import IvrCreateView from '../views/IvrCreateView.vue'
+import IvrDetailView from '../views/IvrDetailView.vue'
+import InboundRoutesListView from '../views/InboundRoutesListView.vue'
+import InboundRouteCreateView from '../views/InboundRouteCreateView.vue'
+import InboundRouteDetailView from '../views/InboundRouteDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,7 +53,19 @@ const router = createRouter({
         { path: 'queues', name: 'queues', component: QueuesListView },
         { path: 'queues/new', name: 'queue-create', component: QueueCreateView },
         { path: 'queues/:pkey', name: 'queue-detail', component: QueueDetailView },
-        { path: 'backups', name: 'backups', component: BackupsListView }
+        { path: 'backups', name: 'backups', component: BackupsListView },
+        { path: 'agents', name: 'agents', component: AgentsListView },
+        { path: 'agents/new', name: 'agent-create', component: AgentCreateView },
+        { path: 'agents/:pkey', name: 'agent-detail', component: AgentDetailView },
+        { path: 'routes', name: 'routes', component: RoutesListView },
+        { path: 'routes/new', name: 'route-create', component: RouteCreateView },
+        { path: 'routes/:pkey', name: 'route-detail', component: RouteDetailView },
+        { path: 'ivrs', name: 'ivrs', component: IvrsListView },
+        { path: 'ivrs/new', name: 'ivr-create', component: IvrCreateView },
+        { path: 'ivrs/:pkey', name: 'ivr-detail', component: IvrDetailView },
+        { path: 'inbound-routes', name: 'inbound-routes', component: InboundRoutesListView },
+        { path: 'inbound-routes/new', name: 'inbound-route-create', component: InboundRouteCreateView },
+        { path: 'inbound-routes/:pkey', name: 'inbound-route-detail', component: InboundRouteDetailView }
       ]
     }
   ]
