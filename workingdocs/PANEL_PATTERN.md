@@ -68,6 +68,12 @@ Apply this block structure to every list view (Extensions, Tenants, Trunks, Queu
 - **Form:** `<form class="form" @submit="onSubmit">`. Labels + inputs; one line error below fields or above actions (`<p v-if="error" class="error">`). Actions: `<div class="actions">` with submit button and `<button type="button" class="secondary" @click="goBack">Cancel</button>`.
 - **On success:** `router.push({ name: '{resource}-detail', params: { pkey: created.pkey } })`.
 
+**Create form: SQL defaults and segmented pills.** When building or refactoring a create form, follow these steps so the form matches the DB and stays consistent with edit forms:
+
+1. **Look at the SQL.** The database create SQL defines table DEFAULTs. **Reference:** `pbx3/pbx3-1/opt/pbx3/db/db_sql/sqlite_create_tenant.sql` (and sibling SQL files in that directory). Find the table for the resource (e.g. **cluster** for tenants, **ipphone** for extensions). Each column’s `DEFAULT` is the value the DB would use when a row is created without that column supplied.
+2. **Implement the defaults.** Preset create-form refs from those DEFAULTs (and from pbx3api model `$attributes` when the model overrides, e.g. Tenant model `chanmax` => 30). Initialize every optional field with its SQL/default value so users see and can change the same values the DB would apply. Required fields (e.g. pkey, description) stay user-filled; optional fields start with the default so “submit as-is” behaves like the DB.
+3. **Look for pill candidates.** Any field that is a **short fixed-choice list** (2–4 values, e.g. YES/NO, enabled/disabled, on/off, None/In/Out/Both) should use a **segmented pill** (`.switch-toggle.switch-ios` + radio inputs), not a `<select>` dropdown. Same rule as §4.2 for edit forms. In create forms, use pills for booleans and for enum-like fields with few options; reserve `<select>` for long or dynamic lists (e.g. Tenant).
+
 **CSS classes (scoped):** `.back`, `.back-btn`, `.form`, `.form label`, `.form input` (or select), `.error`, `.actions`, `.actions button`, `.secondary`.
 
 ---
@@ -120,7 +126,7 @@ For **boolean** (e.g. Active? YES/NO) and **short choice lists** (e.g. Location:
   - `</div>`
 - **CSS (scoped):** `.edit-label-block` (display: block; margin-bottom: 0.25rem). `.switch-toggle.switch-ios`: flex container, background #e2e8f0, border-radius 0.5rem, padding 0.25rem. Hide the radio inputs (position: absolute; opacity: 0; width: 0; height: 0). Style the labels as segments: flex: 1, padding, text-align center, cursor pointer; default color #64748b; hover #334155; **checked** (input:checked + label): background white, color #0f172a, subtle box-shadow. Copy from ExtensionDetailView when adding to other panels.
 
-Apply this to every detail edit form that has a boolean or a small fixed set of choices (e.g. Active?, Location, Transport). Use `<select>` only for long or dynamic lists (e.g. Tenant from API list).
+Apply this to every **detail edit form** and **create form** that has a boolean or a small fixed set of choices (e.g. Active?, Location, Transport, Timer status, Allow hash xfer, CFWD extern rule, LDAP TLS). Use `<select>` only for long or dynamic lists (e.g. Tenant from API list).
 
 ---
 
@@ -221,7 +227,7 @@ When adding a new resource panel (or refactoring an existing one):
 
 1. Add the three routes and three view files following the names above.
 2. Implement List: **Per §2.2** use the **list template blocks** (root `list-view`, `list-header`, `list-states`, `list-body`). Toolbar + add-btn, table, loading/error/empty. **Per §2.1:** add an **Edit** column (link to detail with `query: { edit: '1' }`) for rows that can be edited; add a **Delete** column with a **confirmation modal** (not browser confirm) for rows that can be deleted.
-3. Implement Create: back, form, actions, success → detail.
+3. Implement Create: back, form, actions, success → detail. **Per §3:** (a) Look at the database create SQL for the resource’s table and (b) preset create-form fields from the SQL DEFAULTs (and model `$attributes`). (c) Use **segmented pills** for any short fixed-choice fields (boolean or 2–4 options); do not use `<select>` for those.
 4. Implement Detail: back, toolbar (Edit / Delete), **Per §4.1** use the **detail content blocks** (Identity, second section e.g. Transport or Settings, Advanced reveal). Edit form with all editable API fields; **Per §4.2** use **segmented pill** (switch-toggle switch-ios + radio) for boolean and short choice lists (e.g. Active?), not `<select>`. Delete with confirm. **Per §4:** when `route.query.edit` is set after load, call `startEdit()` so list Edit links land in edit mode.
 5. Reuse the CSS class names from this doc so styling stays consistent (copy from an existing panel, e.g. Extensions or Tenants, then adjust for fields).
 6. **Tenant column:** If the resource has a cluster/tenant, show **Tenant** (tenant pkey) per §5.1 — API returns `tenant_pkey` or frontend resolves from GET tenants. **Use the same resolution in both list and detail:** build the map (id, shortuid, pkey → tenant pkey) and use it in the list view and in the detail view so the Tenant field always shows pkey everywhere.
