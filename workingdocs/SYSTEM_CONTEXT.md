@@ -8,6 +8,15 @@ Quick reference for new chats. See **PLAN.md** for full plan and design.
 
 **PBX3** is essentially a **vanilla Asterisk PBX** with an **API in front**. It uses a **SQLite3** database for persistent storage and a **generator** that reads the DB and builds the files Asterisk needs to run. The **API (pbx3api)** is colocated on each PBX3 instance and is the only management interface — the frontend never touches SQLite or the generator; it only talks to the API.
 
+**PBX3 holds all of its structured data in SQLite3.** The main schema is defined by SQL create scripts under **pbx3/pbx3-1/opt/pbx3/db/db_sql/**:
+
+- **sqlite_create_instance.sql** — Main instance schema (globals, trunks, and other PBX tables; system-level, not per-tenant).
+- **sqlite_create_laravel.sql** — Laravel/auth schema (users, personal_access_tokens/Sanctum, migrations, sessions, cache, jobs, etc.).
+- **sqlite_create_tenant.sql** — Tenant (cluster) schema; per-tenant data.
+- **sqlite_message.sql** — Actual data loaded into table **tt_help_core** (help/UI strings; INSERTs into tt_help_core, not DDL).
+
+Other files in that folder (e.g. sqlite_device.sql, sqlite_create_legacy.sql, sqlite_fix_*.sql) are additional DDL or fix scripts.
+
 ---
 
 ## What we’re building

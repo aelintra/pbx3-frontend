@@ -4,6 +4,18 @@ Discrete job steps. Each step is **testable**, **sign-off-able**, and **committa
 
 ---
 
+## Current state (for the next chat)
+
+**Done:** Steps 1–17 plus Steps 18+ (Tenants, Extensions, Trunks, Queues, Agents, Routes, IVRs, Inbound routes — full CRUD where applicable; Trunk/Queue/Extension detail + edit/delete; Backups page implemented but **parked**). Default after login is **Home** (dashboard): PBX status via `GET syscommands/pbxrunstate` + Refresh, and actions Commit / Start / Stop / Reboot with confirmations. Auth: login, sessionStorage persist, route guard, whoami in layout.
+
+**Parked:** Backups — review after first CRUD set; behaviour may depend on PBX3 internals.
+
+**Later (API-dependent):** Admin user management panel (admins only; API needs stronger user/privilege support first). Help messages — API to expose tt_help_core (sqlite_message.sql data) for display in admin panels; then frontend consumes.
+
+**Next chat:** Read **workingdocs/PROJECT_PLAN.md**, **workingdocs/SYSTEM_CONTEXT.md**, and **workingdocs/README.md**. Pick up from here; next steps could be e.g. push pending commits, revisit Backups, or start API work for user management or tt_help_core before adding frontend for either.
+
+---
+
 ## Stack (locked)
 
 - **Vue 3** (Composition API)
@@ -163,6 +175,14 @@ Further steps can be added in the same style (one deliverable, test, sign-off, c
 
 Each new step gets a row: Deliverable, Test, Sign-off, Commit.
 
+### Steps 18+ (completed)
+
+- Tenant delete (DELETE); Trunk and Queue detail views; Trunk CRUD; Queue CRUD.
+- Extension CRUD (create via POST extensions/mailbox, edit, delete).
+- Agents, Routes (ring groups), IVRs, Inbound routes: full CRUD (list, detail, create, edit, delete).
+- Backups page (list, create new, download, delete) — **parked** (see Parked section); review after first CRUD set.
+- **Landing dashboard:** Default route after login is now **Home** (dashboard). Shows PBX status (GET syscommands/pbxrunstate) with Refresh, and actions: Commit config, Start PBX, Stop PBX, Reboot instance (GET syscommands/{command}), with confirmations. This position will hold the main landing screen and can be extended with more controls later.
+
 ---
 
 ## Verify later
@@ -174,6 +194,14 @@ Each new step gets a row: Deliverable, Test, Sign-off, Commit.
 ## Parked / review after first CRUD set
 
 - **Backups:** Backups page (list, create new, download, delete) is implemented but does not work as expected; behaviour may be due to hidden functionality in PBX3 that is not visible in the API docs. Park Backups for now. **Review after this first set of CRUD panels is complete** — re-test against live PBX3 and adjust or fix as needed.
+
+---
+
+## Later steps / sub-projects (API-dependent)
+
+- **Admin user management panel (admins only):** A management panel that allows admins to add, change, and delete users and manage user privileges. This is a **sub-project in its own right**. The API has some user-management endpoints today (e.g. auth/users) but they are not as strong as desired for privilege management. **API changes to support user privileges and admin-only access will likely be required before we implement this in the admin frontend.** Plan this as a later step: first strengthen the API (user privileges, admin-only operations), then add the panel to the frontend (list users, create/edit/delete, assign privileges), with appropriate access control so only admins can see and use it.
+
+- **Help messages (tt_help_core):** In a later step we will update the API to expose the help/UI messages stored in **tt_help_core** (data loaded from sqlite_message.sql) so the admin frontend can fetch and display them in the admin panels (e.g. field hints, tooltips, or help text). API first (new endpoint or resource), then consume in the frontend.
 
 ---
 
