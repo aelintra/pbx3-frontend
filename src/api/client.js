@@ -26,15 +26,26 @@ export function createApiClient(baseUrl, token) {
     ...(token ? { Authorization: `Bearer ${token}` } : {})
   }
 
+  function buildUrl(path, params) {
+    const pathPart = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
+    if (params && typeof params === 'object' && Object.keys(params).length > 0) {
+      const search = new URLSearchParams(params).toString()
+      return search ? `${pathPart}?${search}` : pathPart
+    }
+    return pathPart
+  }
+
   async function request(method, path, body) {
-    const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
+    const isGetWithParams = method === 'GET' && body && typeof body === 'object' && !Array.isArray(body)
+    const url = buildUrl(path, isGetWithParams ? body : undefined)
     const options = {
       method,
-      headers: body
-        ? { ...headers, 'Content-Type': 'application/json' }
-        : headers
+      headers:
+        method !== 'GET' && body !== undefined && body !== null
+          ? { ...headers, 'Content-Type': 'application/json' }
+          : headers
     }
-    if (body !== undefined && body !== null) {
+    if (body !== undefined && body !== null && method !== 'GET') {
       options.body = JSON.stringify(body)
     }
     const res = await fetch(url, options)
@@ -77,8 +88,8 @@ export function createApiClient(baseUrl, token) {
   }
 
   return {
-    get(path) {
-      return request('GET', path)
+    get(path, options) {
+      return request('GET', path, options?.params)
     },
     getBlob(path) {
       return getBlob(path)
