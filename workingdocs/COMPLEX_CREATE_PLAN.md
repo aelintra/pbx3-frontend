@@ -30,6 +30,13 @@ So we can ship a type-chooser trunk create quickly on the current API, then exte
 
 **Suggested sequence:** Trunk → DDI (Inbound routes) → Extension (most complex). IVR can be standardized in parallel (simple form, no chooser).
 
+**Update (post–Trunk):**
+
+- **Trunk create** — Done (type chooser, id/shortuid, tenant schema, API working).
+- **IVR** — Deferred for now. UX is complex (many options/keys, alert/option/tag grid); leave until later.
+- **Extension** — Simplified in PBX3 vs SARK: **no on-board phone provisioning**; provisioning is a separate service. Extension create is straightforward: choose **protocol** (SIP or WebRTC). Use **sensible defaults** for transport: **SIP → UDP**, **WebRTC → TLS** (implied). No need to expose transport on create; defaults are enough.
+- **Revised order:** DDI (Inbound routes) next, then Extension (now straightforward), IVR later when we tackle its UX.
+
 ---
 
 ## 3. Current state — Trunk create
