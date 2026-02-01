@@ -213,6 +213,7 @@ function goBack() {
             aria-label="Open route destination"
           >
             <option value="None">None</option>
+            <option value="Operator">Operator</option>
             <template v-for="(pkeys, group) in destinationGroups" :key="group">
               <optgroup v-if="pkeys.length" :label="group">
                 <option v-for="p in pkeys" :key="p" :value="p">{{ p }}</option>
@@ -231,6 +232,7 @@ function goBack() {
             aria-label="Closed route destination"
           >
             <option value="None">None</option>
+            <option value="Operator">Operator</option>
             <template v-for="(pkeys, group) in destinationGroups" :key="group">
               <optgroup v-if="pkeys.length" :label="group">
                 <option v-for="p in pkeys" :key="p" :value="p">{{ p }}</option>
