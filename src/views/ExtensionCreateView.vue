@@ -1,14 +1,43 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getApiClient } from '@/api/client'
+import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
+const toast = useToastStore()
+const protocol = ref('')
 const pkey = ref('')
-const cluster = ref('default')
+const cluster = ref('')
 const desc = ref('')
+const macaddr = ref('')
+const tenants = ref([])
 const error = ref('')
 const loading = ref(false)
+
+function normalizeList(response) {
+  if (Array.isArray(response)) return response
+  if (response && typeof response === 'object') {
+    if (Array.isArray(response.data)) return response.data
+    if (Array.isArray(response.tenants)) return response.tenants
+    if (Object.keys(response).every((k) => /^\d+$/.test(k))) return Object.values(response)
+  }
+  return []
+}
+
+const tenantOptions = computed(() => {
+  const list = tenants.value.map((t) => t.pkey).filter(Boolean)
+  return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)))
+})
+
+const tenantOptionsForSelect = computed(() => {
+  const list = tenantOptions.value
+  const cur = cluster.value
+  if (cur && !list.includes(cur)) return [cur, ...list].sort((a, b) => String(a).localeCompare(String(b)))
+  return list
+})
+
+const protocolChosen = computed(() => !!protocol.value)
 
 function fieldErrors(err) {
   if (!err?.data || typeof err.data !== 'object') return null
@@ -16,24 +45,49 @@ function fieldErrors(err) {
   return entries.length ? Object.fromEntries(entries) : null
 }
 
+async function loadTenants() {
+  try {
+    const response = await getApiClient().get('tenants')
+    tenants.value = normalizeList(response)
+    if (tenants.value.length && !cluster.value) {
+      const first = tenants.value.find((t) => t.pkey)?.pkey
+      if (first) cluster.value = first
+    }
+  } catch {
+    tenants.value = []
+  }
+}
+
+onMounted(loadTenants)
+
 async function onSubmit(e) {
   e.preventDefault()
   error.value = ''
   loading.value = true
   try {
-    const extension = await getApiClient().post('extensions/mailbox', {
+    const body = {
       pkey: pkey.value.trim(),
       cluster: cluster.value.trim(),
-      desc: desc.value.trim() || undefined
-    })
-    router.push({ name: 'extension-detail', params: { pkey: extension.pkey } })
+      protocol: protocol.value,
+    }
+    if (desc.value.trim()) body.desc = desc.value.trim()
+    if (macaddr.value.trim()) body.macaddr = macaddr.value.trim().replace(/[^0-9a-fA-F]/g, '')
+    const extension = await getApiClient().post('extensions', body)
+    const createdPkey = extension?.pkey ?? extension?.data?.pkey
+    if (createdPkey) {
+      toast.show(`Extension ${createdPkey} created`)
+      router.push({ name: 'extension-detail', params: { pkey: createdPkey } })
+    } else {
+      toast.show('Extension created', 'success')
+      router.push({ name: 'extensions' })
+    }
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {
       const first = Object.values(errors).flat()[0]
       error.value = first || err.message
     } else {
-      error.value = err.data?.save?.[0] ?? err.data?.message ?? err.message ?? 'Failed to create extension'
+      error.value = err.data?.save?.[0] ?? err.data?.message ?? err.data?.Error ?? err.message ?? 'Failed to create extension'
     }
   } finally {
     loading.value = false
@@ -46,45 +100,68 @@ function goBack() {
 </script>
 
 <template>
-  <div>
+  <div class="create-view">
     <p class="back">
       <button type="button" class="back-btn" @click="goBack">← Extensions</button>
     </p>
     <h1>Create extension</h1>
 
     <form class="form" @submit="onSubmit">
-      <label for="pkey">pkey</label>
-      <input
-        id="pkey"
-        v-model="pkey"
-        type="text"
-        placeholder="e.g. 1001"
-        required
-        autocomplete="off"
-      />
+      <label for="protocol" class="form-label">Protocol</label>
+      <select
+        id="protocol"
+        v-model="protocol"
+        class="form-input"
+        aria-label="Choose protocol"
+      >
+        <option value="">Choose protocol</option>
+        <option value="SIP">SIP</option>
+        <option value="WebRTC">WebRTC</option>
+        <option value="Mailbox">Mailbox</option>
+      </select>
 
-      <label for="cluster">cluster</label>
-      <input
-        id="cluster"
-        v-model="cluster"
-        type="text"
-        placeholder="e.g. default"
-        required
-      />
+      <template v-if="protocolChosen">
+        <label for="pkey" class="form-label">Extension number</label>
+        <input
+          id="pkey"
+          v-model="pkey"
+          type="text"
+          class="form-input"
+          placeholder="e.g. 1001"
+          required
+          autocomplete="off"
+        />
 
-      <label for="desc">description (optional)</label>
-      <input
-        id="desc"
-        v-model="desc"
-        type="text"
-        placeholder="Short description"
-        autocomplete="off"
-      />
+        <label for="cluster" class="form-label">Tenant</label>
+        <select id="cluster" v-model="cluster" class="form-input" required>
+          <option v-for="opt in tenantOptionsForSelect" :key="opt" :value="opt">{{ opt }}</option>
+        </select>
+
+        <label for="desc" class="form-label">Name</label>
+        <input
+          id="desc"
+          v-model="desc"
+          type="text"
+          class="form-input"
+          placeholder="Short description or display name"
+          autocomplete="off"
+        />
+
+        <label for="macaddr" class="form-label">MAC address (optional)</label>
+        <input
+          id="macaddr"
+          v-model="macaddr"
+          type="text"
+          class="form-input"
+          placeholder="e.g. 001122334455 (12 hex digits)"
+          autocomplete="off"
+        />
+      </template>
 
       <p v-if="error" class="error">{{ error }}</p>
 
       <div class="actions">
-        <button type="submit" :disabled="loading">
+        <button type="submit" :disabled="loading || !protocolChosen">
           {{ loading ? 'Creating…' : 'Create' }}
         </button>
         <button type="button" class="secondary" @click="goBack">Cancel</button>
@@ -117,17 +194,17 @@ function goBack() {
   flex-direction: column;
   gap: 0.75rem;
 }
-.form label {
+.form-label {
   font-size: 0.875rem;
   font-weight: 500;
 }
-.form input {
+.form-input {
   padding: 0.5rem 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 0.375rem;
   font-size: 1rem;
 }
-.form input:focus {
+.form-input:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
