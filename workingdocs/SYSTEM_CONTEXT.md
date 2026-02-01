@@ -8,6 +8,8 @@ Quick reference for new chats. See **PLAN.md** for full plan and design.
 
 **pbx3-master** is a workspace folder that holds **pbx3**, **pbx3-frontend**, and **pbx3api** together so they can be opened in one place. It is **not** a git repo. The three projects are **separate repos** by design: keeping them functionally and physically separate is easier to manage and for users to envisage, and helps keep everything in the right place. Commits are made inside each project’s own repo. There are other repos in the overall project; for current work they are not needed — focus on pbx3, pbx3-frontend, and pbx3api.
 
+**Commit everything.** When committing, stage and commit all modified and new files in the repo — keep one version of the truth in git. Uncommitted work can be missed by other sessions or agents and lead to confusion or lost changes.
+
 ---
 
 ## PBX3 in one paragraph
