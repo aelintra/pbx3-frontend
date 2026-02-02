@@ -25,6 +25,8 @@ Quick reference for new chats. See **PLAN.md** for full plan and design.
 
 Other files in that folder (e.g. sqlite_device.sql, sqlite_create_legacy.sql, sqlite_fix_*.sql) are additional DDL or fix scripts.
 
+**Schema yardstick:** **pbx3/full_schema.sql** is a single consolidated schema file used as the **source of truth** for table columns when aligning API models and controllers. API code (pbx3api) should not reference columns that do not exist in full_schema.sql. See SESSION_HANDOFF.md for recent alignment work.
+
 ---
 
 ## Scope: legacy dump/restore (ignore for now)
