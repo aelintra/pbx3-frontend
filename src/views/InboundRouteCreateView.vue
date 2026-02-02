@@ -96,10 +96,8 @@ async function loadDestinations() {
 
 watch(cluster, () => {
   loadDestinations()
-  if (!cluster.value) {
-    openroute.value = 'None'
-    closeroute.value = 'None'
-  }
+  openroute.value = 'None'
+  closeroute.value = 'None'
 })
 
 onMounted(() => {
