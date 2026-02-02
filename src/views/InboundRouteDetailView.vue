@@ -18,6 +18,8 @@ const editTrunkname = ref('')
 const editActive = ref('YES')
 const editOpenroute = ref('')
 const editCloseroute = ref('')
+const destinations = ref(null)
+const destinationsLoading = ref(false)
 const editAlertinfo = ref('')
 const editMoh = ref('OFF')
 const editSwoclip = ref('YES')
@@ -73,6 +75,34 @@ const tenantOptionsForSelect = computed(() => {
   return list
 })
 
+const destinationGroups = computed(() => {
+  const d = destinations.value
+  if (!d || typeof d !== 'object') return {}
+  return {
+    Queues: Array.isArray(d.Queues) ? d.Queues : [],
+    Extensions: Array.isArray(d.Extensions) ? d.Extensions : [],
+    IVRs: Array.isArray(d.IVRs) ? d.IVRs : [],
+    CustomApps: Array.isArray(d.CustomApps) ? d.CustomApps : [],
+  }
+})
+
+async function loadDestinations() {
+  const c = editCluster.value
+  if (!c) {
+    destinations.value = null
+    return
+  }
+  destinationsLoading.value = true
+  try {
+    const response = await getApiClient().get('destinations', { params: { cluster: c } })
+    destinations.value = response && typeof response === 'object' ? response : null
+  } catch {
+    destinations.value = null
+  } finally {
+    destinationsLoading.value = false
+  }
+}
+
 async function fetchTenants() {
   try {
     const response = await getApiClient().get('tenants')
@@ -93,16 +123,19 @@ async function fetchInboundRoute() {
     editDescription.value = inboundRoute.value?.description ?? inboundRoute.value?.desc ?? ''
     editTrunkname.value = inboundRoute.value?.trunkname ?? ''
     editActive.value = inboundRoute.value?.active ?? 'YES'
-    editOpenroute.value = inboundRoute.value?.openroute ?? ''
-    editCloseroute.value = inboundRoute.value?.closeroute ?? ''
+    editOpenroute.value = inboundRoute.value?.openroute ?? 'None'
+    editCloseroute.value = inboundRoute.value?.closeroute ?? 'None'
     editAlertinfo.value = inboundRoute.value?.alertinfo ?? ''
-    editMoh.value = inboundRoute.value?.moh ?? 'OFF'
+    editMoh.value = (inboundRoute.value?.moh === 'NO') ? 'OFF' : (inboundRoute.value?.moh ?? 'OFF')
     editSwoclip.value = inboundRoute.value?.swoclip ?? 'YES'
     editDisa.value = inboundRoute.value?.disa ?? ''
     editDisapass.value = inboundRoute.value?.disapass ?? ''
     editInprefix.value = inboundRoute.value?.inprefix != null ? String(inboundRoute.value.inprefix) : ''
     editTag.value = inboundRoute.value?.tag ?? ''
-    if (route.query.edit) startEdit()
+    if (route.query.edit) {
+      startEdit()
+      if (editCluster.value) loadDestinations()
+    }
   } catch (err) {
     error.value = err.data?.message || err.message || 'Failed to load inbound route'
     inboundRoute.value = null
@@ -115,6 +148,12 @@ onMounted(() => {
   fetchTenants().then(() => fetchInboundRoute())
 })
 watch(pkey, fetchInboundRoute)
+watch(editCluster, () => {
+  if (editing.value) loadDestinations()
+})
+watch(editing, (isEditing) => {
+  if (isEditing && editCluster.value) loadDestinations()
+})
 
 function goBack() {
   router.push({ name: 'inbound-routes' })
@@ -125,10 +164,10 @@ function startEdit() {
   editDescription.value = inboundRoute.value?.description ?? inboundRoute.value?.desc ?? ''
   editTrunkname.value = inboundRoute.value?.trunkname ?? ''
   editActive.value = inboundRoute.value?.active ?? 'YES'
-  editOpenroute.value = inboundRoute.value?.openroute ?? ''
-  editCloseroute.value = inboundRoute.value?.closeroute ?? ''
+    editOpenroute.value = inboundRoute.value?.openroute ?? 'None'
+    editCloseroute.value = inboundRoute.value?.closeroute ?? 'None'
   editAlertinfo.value = inboundRoute.value?.alertinfo ?? ''
-  editMoh.value = inboundRoute.value?.moh ?? 'OFF'
+  editMoh.value = (inboundRoute.value?.moh === 'NO') ? 'OFF' : (inboundRoute.value?.moh ?? 'OFF')
   editSwoclip.value = inboundRoute.value?.swoclip ?? 'YES'
   editDisa.value = inboundRoute.value?.disa ?? ''
   editDisapass.value = inboundRoute.value?.disapass ?? ''
@@ -305,9 +344,26 @@ const otherFields = computed(() => {
             <label for="edit-active-no">NO</label>
           </div>
           <label for="edit-openroute">Open route</label>
-          <input id="edit-openroute" v-model="editOpenroute" type="text" class="edit-input" placeholder="e.g. operator" />
+          <select id="edit-openroute" v-model="editOpenroute" class="edit-input" aria-label="Open route destination">
+            <option value="None">None</option>
+            <option value="Operator">Operator</option>
+            <template v-for="(pkeys, group) in destinationGroups" :key="group">
+              <optgroup v-if="pkeys.length" :label="group">
+                <option v-for="p in pkeys" :key="p" :value="p">{{ p }}</option>
+              </optgroup>
+            </template>
+          </select>
+          <span v-if="destinationsLoading" class="hint">Loading…</span>
           <label for="edit-closeroute">Close route</label>
-          <input id="edit-closeroute" v-model="editCloseroute" type="text" class="edit-input" placeholder="e.g. operator" />
+          <select id="edit-closeroute" v-model="editCloseroute" class="edit-input" aria-label="Closed route destination">
+            <option value="None">None</option>
+            <option value="Operator">Operator</option>
+            <template v-for="(pkeys, group) in destinationGroups" :key="group">
+              <optgroup v-if="pkeys.length" :label="group">
+                <option v-for="p in pkeys" :key="p" :value="p">{{ p }}</option>
+              </optgroup>
+            </template>
+          </select>
           <label for="edit-alertinfo">Alert info</label>
           <input id="edit-alertinfo" v-model="editAlertinfo" type="text" class="edit-input" />
           <label class="edit-label-block">MOH</label>
