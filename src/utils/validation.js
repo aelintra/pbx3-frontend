@@ -62,6 +62,17 @@ export function validateTrunkPkey(value) {
 }
 
 /**
+ * Validate Extension number (pkey) for create
+ * Required, non-empty
+ */
+export function validateExtensionPkey(value) {
+  if (!value || !value.trim()) {
+    return 'Extension number is required'
+  }
+  return null
+}
+
+/**
  * Validate Route dialplan
  * Required; route will not work without it (e.g. _XXXXXX)
  */

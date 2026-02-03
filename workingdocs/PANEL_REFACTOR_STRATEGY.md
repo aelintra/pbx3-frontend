@@ -19,6 +19,7 @@
 - **Step 8 (Routes)** ✅ Routes panels: RoutesListView, RouteCreateView, RouteDetailView refactored to full pattern (shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage).
 - **Step 8 (Inbound Routes)** ✅ InboundRoutesListView, InboundRouteCreateView, InboundRouteDetailView refactored to full pattern (shared normalizeList, form components, always-edit Detail, Save/Cancel/Delete, firstErrorMessage, validateInboundRoutePkey/validateInboundCarrier).
 - **Step 8 (Trunks)** ✅ TrunksListView, TrunkCreateView, TrunkDetailView refactored to full pattern (shared normalizeList, form components, always-edit Detail, Save/Cancel/Delete, firstErrorMessage, validateTrunkPkey/validateTenant).
+- **Step 8 (Extensions)** ✅ ExtensionsListView, ExtensionCreateView, ExtensionDetailView refactored to full pattern (shared normalizeList, form components, always-edit Detail, Save/Cancel/Delete, firstErrorMessage, validateExtensionPkey/validateTenant; Detail exposes all API updateable fields including Advanced).
 
 ---
 

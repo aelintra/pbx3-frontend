@@ -3,6 +3,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
+import { normalizeList } from '@/utils/listResponse'
+import { firstErrorMessage } from '@/utils/formErrors'
+import FormField from '@/components/forms/FormField.vue'
+import FormSelect from '@/components/forms/FormSelect.vue'
+import FormToggle from '@/components/forms/FormToggle.vue'
+import FormReadonly from '@/components/forms/FormReadonly.vue'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,38 +20,36 @@ const runtime = ref(null)
 const runtimeError = ref('')
 const loading = ref(true)
 const error = ref('')
-const editing = ref(false)
-const editPkey = ref('')
 const editCluster = ref('')
 const editDesc = ref('')
 const editActive = ref('YES')
 const editLocation = ref('local')
 const editTransport = ref('udp')
+const editCallbackto = ref('desk')
+const editCallerid = ref('')
+const editCellphone = ref('')
+const editCelltwin = ref('OFF')
+const editDevicerec = ref('None')
+const editDvrvmail = ref('')
+const editProtocol = ref('IPV4')
+const editProvision = ref('')
+const editProvisionwith = ref('IP')
+const editSndcreds = ref('No')
+const editVmailfwd = ref('')
 const saveError = ref('')
 const saving = ref(false)
 const deleteError = ref('')
 const deleting = ref(false)
+const confirmDeleteOpen = ref(false)
 const editingRuntime = ref(false)
 const editCfim = ref('')
 const editCfbs = ref('')
 const editRingdelay = ref('')
 const runtimeSaveError = ref('')
 const runtimeSaving = ref(false)
-const advancedOpen = ref(false)
 
 const pkey = computed(() => route.params.pkey)
 
-function normalizeList(response) {
-  if (Array.isArray(response)) return response
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response.data)) return response.data
-    if (Array.isArray(response.tenants)) return response.tenants
-    if (Object.keys(response).every((k) => /^\d+$/.test(k))) return Object.values(response)
-  }
-  return []
-}
-
-/** Map cluster id/shortuid/pkey → tenant pkey for display and dropdown */
 const clusterToTenantPkey = computed(() => {
   const map = new Map()
   for (const t of tenants.value) {
@@ -55,12 +60,17 @@ const clusterToTenantPkey = computed(() => {
   return map
 })
 
+function tenantPkeyDisplay(clusterValue) {
+  if (clusterValue == null || clusterValue === '') return '—'
+  const s = String(clusterValue)
+  return clusterToTenantPkey.value.get(s) ?? extension.value?.tenant_pkey ?? s
+}
+
 const tenantOptions = computed(() => {
   const list = tenants.value.map((t) => t.pkey).filter(Boolean)
   return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)))
 })
 
-/** Tenant options for dropdown, including current value if not in list (e.g. from API) */
 const tenantOptionsForSelect = computed(() => {
   const list = tenantOptions.value
   const cur = editCluster.value
@@ -68,29 +78,10 @@ const tenantOptionsForSelect = computed(() => {
   return list
 })
 
-/** Resolve extension cluster to tenant pkey for display */
-function tenantPkeyDisplay(clusterValue) {
-  if (clusterValue == null || clusterValue === '') return '—'
-  const s = String(clusterValue)
-  return clusterToTenantPkey.value.get(s) ?? extension.value?.tenant_pkey ?? s
-}
-
-/** Other fields for Advanced section (exclude identity/transport/runtime) */
-const ADVANCED_EXCLUDE = new Set([
-  'id', 'pkey', 'shortuid', 'cluster', 'tenant_pkey', 'active', 'device', 'devicemodel', 'location', 'desc', 'description',
-  'transport', 'technology', 'macaddr'
-])
-const otherFields = computed(() => {
-  if (!extension.value || typeof extension.value !== 'object') return []
-  return Object.entries(extension.value)
-    .filter(([k]) => !ADVANCED_EXCLUDE.has(k))
-    .sort(([a], [b]) => a.localeCompare(b))
-})
-
 async function fetchTenants() {
   try {
     const response = await getApiClient().get('tenants')
-    tenants.value = normalizeList(response)
+    tenants.value = normalizeList(response, 'tenants')
   } catch {
     tenants.value = []
   }
@@ -104,16 +95,26 @@ async function fetchExtension() {
   runtimeError.value = ''
   try {
     extension.value = await getApiClient().get(`extensions/${encodeURIComponent(pkey.value)}`)
-    editPkey.value = extension.value?.pkey ?? ''
-    const tenantPkey = extension.value?.tenant_pkey ?? tenantPkeyDisplay(extension.value?.cluster)
+    const ext = extension.value
+    const tenantPkey = ext?.tenant_pkey ?? tenantPkeyDisplay(ext?.cluster)
     editCluster.value = tenantPkey ?? 'default'
-    editDesc.value = extension.value?.desc ?? extension.value?.description ?? ''
-    editActive.value = extension.value?.active ?? 'YES'
-    editLocation.value = extension.value?.location ?? 'local'
-    editTransport.value = extension.value?.transport ?? 'udp'
-    if (route.query.edit) startEdit()
+    editDesc.value = ext?.desc ?? ext?.description ?? ''
+    editActive.value = ext?.active ?? 'YES'
+    editLocation.value = ext?.location ?? 'local'
+    editTransport.value = ext?.transport ?? 'udp'
+    editCallbackto.value = ext?.callbackto ?? 'desk'
+    editCallerid.value = ext?.callerid != null ? String(ext.callerid) : ''
+    editCellphone.value = ext?.cellphone != null ? String(ext.cellphone) : ''
+    editCelltwin.value = ext?.celltwin ?? 'OFF'
+    editDevicerec.value = ext?.devicerec ?? 'None'
+    editDvrvmail.value = ext?.dvrvmail ?? ''
+    editProtocol.value = ext?.protocol ?? 'IPV4'
+    editProvision.value = ext?.provision ?? ''
+    editProvisionwith.value = ext?.provisionwith ?? 'IP'
+    editSndcreds.value = ext?.sndcreds ?? 'No'
+    editVmailfwd.value = ext?.vmailfwd ?? ''
   } catch (err) {
-    error.value = err.data?.message || err.message || 'Failed to load extension'
+    error.value = firstErrorMessage(err, 'Failed to load extension')
     extension.value = null
   } finally {
     loading.value = false
@@ -129,61 +130,31 @@ async function fetchRuntime() {
     editCfbs.value = runtime.value?.cfbs ?? ''
     editRingdelay.value = runtime.value?.ringdelay != null ? String(runtime.value.ringdelay) : ''
   } catch (err) {
-    runtimeError.value = err.data?.message || err.message || 'Runtime unavailable'
+    runtimeError.value = firstErrorMessage(err, 'Runtime unavailable')
     runtime.value = null
   }
 }
 
-/** Identity section fields for view mode. Immutable fields grouped first, then editable. */
-const identityFields = computed(() => {
-  if (!extension.value) return []
-  const ext = extension.value
-  return [
-    { label: 'Ext', value: ext.pkey ?? '—', immutable: true },
-    { label: 'SIP Identity', value: ext.shortuid ?? '—', immutable: true },
-    { label: 'KSUID', value: ext.id ?? '—', immutable: true },
-    { label: 'MAC', value: ext.macaddr ?? '—', immutable: true },
-    { label: 'Device', value: ext.device ?? '—', immutable: true },
-    { label: 'Device model', value: ext.devicemodel ?? '—', immutable: true },
-    { label: 'Tenant', value: tenantPkeyDisplay(ext.cluster), immutable: false },
-    { label: 'User', value: ext.desc ?? ext.description ?? '—', immutable: false },
-    { label: 'Active?', value: ext.active ?? '—', immutable: false }
-  ]
-})
-
-/** Transport section fields for view mode */
-const transportFields = computed(() => {
-  if (!extension.value) return []
-  const ext = extension.value
-  return [
-    { label: 'Location', value: ext.location ?? '—' },
-    { label: 'Transport', value: ext.transport ?? '—' }
-  ]
-})
-
 onMounted(() => {
-  fetchTenants().then(() => fetchExtension())
+  fetchTenants().then(() => fetchExtension().then(() => fetchRuntime()))
 })
-watch(pkey, fetchExtension)
+watch(pkey, () => {
+  fetchExtension().then(() => fetchRuntime())
+})
 
 function goBack() {
   router.push({ name: 'extensions' })
 }
 
-function startEdit() {
-  editPkey.value = extension.value?.pkey ?? ''
-  editCluster.value = extension.value?.tenant_pkey ?? tenantPkeyDisplay(extension.value?.cluster) ?? 'default'
-  editDesc.value = extension.value?.desc ?? extension.value?.description ?? ''
-  editActive.value = extension.value?.active ?? 'YES'
-  editLocation.value = extension.value?.location ?? 'local'
-  editTransport.value = extension.value?.transport ?? 'udp'
-  saveError.value = ''
-  editing.value = true
+function cancelEdit() {
+  goBack()
 }
 
-function cancelEdit() {
-  editing.value = false
-  saveError.value = ''
+function onKeydown(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    goBack()
+  }
 }
 
 async function saveEdit(e) {
@@ -191,36 +162,57 @@ async function saveEdit(e) {
   saveError.value = ''
   saving.value = true
   try {
-    const newPkey = editPkey.value.trim()
-    await getApiClient().put(`extensions/${encodeURIComponent(pkey.value)}`, {
-      pkey: newPkey,
+    const body = {
+      pkey: pkey.value,
       cluster: editCluster.value.trim(),
-      device: extension.value.device ?? 'MAILBOX',
-      desc: editDesc.value.trim() || null,
+      device: extension.value?.device ?? 'MAILBOX',
+      desc: editDesc.value.trim() || undefined,
       location: editLocation.value,
       active: editActive.value,
-      transport: editTransport.value
-    })
-    toast.show(`Extension ${newPkey} saved`)
-    editing.value = false
-    if (newPkey !== pkey.value) {
-      router.push({ name: 'extension-detail', params: { pkey: newPkey } })
-    } else {
-      await fetchExtension()
+      transport: editTransport.value,
+      callbackto: editCallbackto.value,
+      callerid: editCallerid.value.trim() ? parseInt(editCallerid.value, 10) : undefined,
+      cellphone: editCellphone.value.trim() ? parseInt(editCellphone.value, 10) : undefined,
+      celltwin: editCelltwin.value,
+      devicerec: editDevicerec.value,
+      dvrvmail: editDvrvmail.value.trim() || undefined,
+      protocol: editProtocol.value,
+      provision: editProvision.value.trim() || undefined,
+      provisionwith: editProvisionwith.value,
+      sndcreds: editSndcreds.value,
+      vmailfwd: editVmailfwd.value.trim() || undefined
     }
+    await getApiClient().put(`extensions/${encodeURIComponent(pkey.value)}`, body)
+    await fetchExtension()
+    toast.show(`Extension ${pkey.value} saved`)
   } catch (err) {
-    const msg =
-      err.data?.pkey?.[0] ??
-      err.data?.cluster?.[0] ??
-      err.data?.desc?.[0] ??
-      err.data?.active?.[0] ??
-      err.data?.location?.[0] ??
-      err.data?.transport?.[0] ??
-      err.data?.message ??
-      err.message
-    saveError.value = msg || 'Failed to update extension'
+    saveError.value = firstErrorMessage(err, 'Failed to update extension')
   } finally {
     saving.value = false
+  }
+}
+
+function askConfirmDelete() {
+  deleteError.value = ''
+  confirmDeleteOpen.value = true
+}
+
+function cancelConfirmDelete() {
+  confirmDeleteOpen.value = false
+}
+
+async function confirmAndDelete() {
+  deleteError.value = ''
+  deleting.value = true
+  try {
+    await getApiClient().delete(`extensions/${encodeURIComponent(pkey.value)}`)
+    toast.show(`Extension ${pkey.value} deleted`)
+    router.push({ name: 'extensions' })
+  } catch (err) {
+    deleteError.value = firstErrorMessage(err, 'Failed to delete extension')
+  } finally {
+    deleting.value = false
+    confirmDeleteOpen.value = false
   }
 }
 
@@ -251,178 +243,198 @@ async function saveRuntime(e) {
     editingRuntime.value = false
     toast.show('Runtime settings saved')
   } catch (err) {
-    runtimeSaveError.value = err.data?.message ?? err.message ?? 'Failed to update runtime'
+    runtimeSaveError.value = firstErrorMessage(err, 'Failed to update runtime')
   } finally {
     runtimeSaving.value = false
-  }
-}
-
-async function doDelete() {
-  if (!confirm(`Delete extension "${pkey.value}"? This cannot be undone.`)) return
-  deleteError.value = ''
-  deleting.value = true
-  try {
-    await getApiClient().delete(`extensions/${encodeURIComponent(pkey.value)}`)
-    router.push({ name: 'extensions' })
-  } catch (err) {
-    deleteError.value = err.data?.message ?? err.message ?? 'Failed to delete extension'
-  } finally {
-    deleting.value = false
   }
 }
 </script>
 
 <template>
-  <div>
-    <p class="back">
-      <button type="button" class="back-btn" @click="goBack">← Extensions</button>
-    </p>
-    <h1>Extension: {{ pkey }}</h1>
+  <div class="detail-view" @keydown="onKeydown">
+    <h1>Edit Extension {{ pkey }}</h1>
 
     <p v-if="loading" class="loading">Loading…</p>
     <p v-else-if="error" class="error">{{ error }}</p>
     <template v-else-if="extension">
       <div class="detail-content">
-        <p v-if="!editing" class="toolbar">
-          <button type="button" class="edit-btn" @click="startEdit">Edit</button>
-          <button
-            type="button"
-            class="delete-btn"
-            :disabled="deleting"
-            @click="doDelete"
-          >
-            {{ deleting ? 'Deleting…' : 'Delete extension' }}
-          </button>
-        </p>
         <p v-if="deleteError" class="error">{{ deleteError }}</p>
-        <form v-else-if="editing" class="edit-form" @submit="saveEdit">
+
+        <form class="edit-form" @submit="saveEdit">
+          <p v-if="saveError" id="extension-edit-error" class="error" role="alert">{{ saveError }}</p>
+
           <h2 class="detail-heading">Identity</h2>
-          <label>SIP Identity</label>
-          <p class="detail-readonly value-immutable" title="Immutable">{{ extension.shortuid ?? '—' }}</p>
-          <label for="edit-tenant">Tenant</label>
-          <select id="edit-tenant" v-model="editCluster" class="edit-input" required>
-            <option v-for="opt in tenantOptionsForSelect" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-          <label for="edit-desc">User (extension name)</label>
-          <input id="edit-desc" v-model="editDesc" type="text" class="edit-input" placeholder="e.g. John Doe" maxlength="255" />
-          <label class="edit-label-block">Active?</label>
-          <div class="switch-toggle switch-ios">
-            <input id="edit-active-yes" type="radio" value="YES" v-model="editActive" />
-            <label for="edit-active-yes">YES</label>
-            <input id="edit-active-no" type="radio" value="NO" v-model="editActive" />
-            <label for="edit-active-no">NO</label>
+          <div class="form-fields">
+            <FormReadonly id="edit-identity-pkey" label="Ext" :value="extension.pkey ?? '—'" class="readonly-identity" />
+            <FormReadonly id="edit-identity-shortuid" label="SIP Identity" :value="extension.shortuid ?? '—'" class="readonly-identity" />
+            <FormReadonly id="edit-identity-id" label="KSUID" :value="extension.id ?? '—'" class="readonly-identity" />
+            <FormReadonly id="edit-identity-device" label="Device" :value="extension.device ?? '—'" class="readonly-identity" />
+            <FormSelect
+              id="edit-cluster"
+              v-model="editCluster"
+              label="Tenant"
+              :options="tenantOptionsForSelect"
+              :required="true"
+            />
+            <FormField
+              id="edit-desc"
+              v-model="editDesc"
+              label="User (extension name)"
+              type="text"
+              placeholder="e.g. John Doe"
+            />
+            <FormToggle
+              id="edit-active"
+              v-model="editActive"
+              label="Active?"
+              yes-value="YES"
+              no-value="NO"
+            />
           </div>
+
           <h2 class="detail-heading">Transport</h2>
-          <label class="edit-label-block">Location</label>
-          <div class="switch-toggle switch-ios">
-            <input id="edit-location-local" type="radio" value="local" v-model="editLocation" />
-            <label for="edit-location-local">local</label>
-            <input id="edit-location-remote" type="radio" value="remote" v-model="editLocation" />
-            <label for="edit-location-remote">remote</label>
+          <div class="form-fields">
+            <FormSelect
+              id="edit-location"
+              v-model="editLocation"
+              label="Location"
+              :options="['local', 'remote']"
+            />
+            <FormSelect
+              id="edit-transport"
+              v-model="editTransport"
+              label="Transport"
+              :options="['udp', 'tcp', 'tls', 'wss']"
+              hint="SIP transport."
+            />
           </div>
-          <label class="edit-label-block">Transport protocol</label>
-          <div class="switch-toggle switch-ios">
-            <input id="edit-transport-udp" type="radio" value="udp" v-model="editTransport" />
-            <label for="edit-transport-udp">udp</label>
-            <input id="edit-transport-tcp" type="radio" value="tcp" v-model="editTransport" />
-            <label for="edit-transport-tcp">tcp</label>
-            <input id="edit-transport-tls" type="radio" value="tls" v-model="editTransport" />
-            <label for="edit-transport-tls">tls</label>
-            <input id="edit-transport-wss" type="radio" value="wss" v-model="editTransport" />
-            <label for="edit-transport-wss">wss</label>
+
+          <h2 class="detail-heading">Advanced</h2>
+          <div class="form-fields">
+            <FormSelect
+              id="edit-callbackto"
+              v-model="editCallbackto"
+              label="Callback to"
+              :options="['desk', 'cell']"
+            />
+            <FormField id="edit-callerid" v-model="editCallerid" label="Caller ID" type="text" inputmode="numeric" />
+            <FormField id="edit-cellphone" v-model="editCellphone" label="Cell phone" type="text" inputmode="numeric" />
+            <FormToggle
+              id="edit-celltwin"
+              v-model="editCelltwin"
+              label="Cell twin"
+              yes-value="ON"
+              no-value="OFF"
+            />
+            <FormSelect
+              id="edit-devicerec"
+              v-model="editDevicerec"
+              label="Devicerec"
+              :options="['None', 'OTR', 'OTRR', 'Inbound.Outbound', 'Both']"
+            />
+            <FormField id="edit-dvrvmail" v-model="editDvrvmail" label="DVR voicemail" type="text" />
+            <FormSelect
+              id="edit-protocol"
+              v-model="editProtocol"
+              label="Protocol"
+              :options="['IPV4', 'IPV6']"
+            />
+            <FormField id="edit-provision" v-model="editProvision" label="Provision" type="text" />
+            <FormSelect
+              id="edit-provisionwith"
+              v-model="editProvisionwith"
+              label="Provision with"
+              :options="['IP', 'FQDN']"
+            />
+            <FormSelect
+              id="edit-sndcreds"
+              v-model="editSndcreds"
+              label="Send credentials"
+              :options="['No', 'Once', 'Always']"
+            />
+            <FormField id="edit-vmailfwd" v-model="editVmailfwd" label="Voicemail forward (email)" type="email" />
           </div>
-          <p v-if="saveError" class="error">{{ saveError }}</p>
+
           <div class="edit-actions">
             <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
             <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
+            <button
+              type="button"
+              class="action-delete"
+              :disabled="deleting"
+              @click="askConfirmDelete"
+            >
+              {{ deleting ? 'Deleting…' : 'Delete' }}
+            </button>
           </div>
         </form>
-        <template v-if="!editing">
-          <section class="detail-section">
-            <h2 class="detail-heading">Identity</h2>
-            <dl class="detail-list">
-              <template v-for="f in identityFields" :key="f.label">
-                <dt>{{ f.label }}</dt>
-                <dd :class="{ 'value-immutable': f.immutable }" :title="f.immutable ? 'Immutable' : undefined">{{ f.value }}</dd>
-              </template>
+
+        <section class="detail-section">
+          <h2 class="detail-heading">Runtime</h2>
+          <p v-if="runtimeError" class="error">{{ runtimeError }}</p>
+          <p v-else-if="!runtime" class="muted">Runtime params appear after Asterisk config is regenerated.</p>
+          <template v-else-if="runtime">
+            <p v-if="!editingRuntime" class="toolbar">
+              <button type="button" class="edit-btn" @click="startEditRuntime">Edit runtime</button>
+            </p>
+            <form v-else class="edit-form runtime-form" @submit="saveRuntime">
+              <FormField
+                id="edit-cfim"
+                v-model="editCfim"
+                label="cfim (call forward no answer)"
+                type="text"
+                placeholder="e.g. +1234567890"
+              />
+              <FormField
+                id="edit-cfbs"
+                v-model="editCfbs"
+                label="cfbs (call forward busy)"
+                type="text"
+                placeholder="e.g. +1234567890"
+              />
+              <FormField
+                id="edit-ringdelay"
+                v-model="editRingdelay"
+                label="ringdelay (seconds)"
+                type="number"
+                placeholder="0"
+              />
+              <p v-if="runtimeSaveError" class="error">{{ runtimeSaveError }}</p>
+              <div class="edit-actions">
+                <button type="submit" :disabled="runtimeSaving">{{ runtimeSaving ? 'Saving…' : 'Save' }}</button>
+                <button type="button" class="secondary" @click="cancelEditRuntime">Cancel</button>
+              </div>
+            </form>
+            <dl v-if="!editingRuntime" class="detail-list">
+              <dt>cfim</dt>
+              <dd>{{ runtime.cfim ?? '—' }}</dd>
+              <dt>cfbs</dt>
+              <dd>{{ runtime.cfbs ?? '—' }}</dd>
+              <dt>ringdelay</dt>
+              <dd>{{ runtime.ringdelay != null ? runtime.ringdelay : '—' }}</dd>
             </dl>
-          </section>
-          <section class="detail-section">
-            <h2 class="detail-heading">Transport</h2>
-            <dl class="detail-list">
-              <template v-for="f in transportFields" :key="f.label">
-                <dt>{{ f.label }}</dt>
-                <dd>{{ f.value }}</dd>
-              </template>
-            </dl>
-          </section>
-          <section class="detail-section">
-            <h2 class="detail-heading">Runtime</h2>
-            <p v-if="runtimeError" class="error">{{ runtimeError }}</p>
-            <p v-else-if="!runtime" class="muted">Runtime params appear after Asterisk config is regenerated.</p>
-            <template v-else-if="runtime">
-              <p v-if="!editingRuntime" class="toolbar">
-                <button type="button" class="edit-btn" @click="startEditRuntime">Edit runtime</button>
-              </p>
-              <form v-else class="edit-form" @submit="saveRuntime">
-                <label for="edit-cfim">cfim (call forward no answer)</label>
-                <input id="edit-cfim" v-model="editCfim" type="text" class="edit-input" placeholder="e.g. +1234567890" />
-                <label for="edit-cfbs">cfbs (call forward busy)</label>
-                <input id="edit-cfbs" v-model="editCfbs" type="text" class="edit-input" placeholder="e.g. +1234567890" />
-                <label for="edit-ringdelay">ringdelay (seconds)</label>
-                <input id="edit-ringdelay" v-model="editRingdelay" type="number" min="0" class="edit-input" placeholder="0" />
-                <p v-if="runtimeSaveError" class="error">{{ runtimeSaveError }}</p>
-                <div class="edit-actions">
-                  <button type="submit" :disabled="runtimeSaving">{{ runtimeSaving ? 'Saving…' : 'Save' }}</button>
-                  <button type="button" class="secondary" @click="cancelEditRuntime">Cancel</button>
-                </div>
-              </form>
-              <dl v-if="!editingRuntime" class="detail-list">
-                <dt>cfim</dt>
-                <dd>{{ runtime.cfim ?? '—' }}</dd>
-                <dt>cfbs</dt>
-                <dd>{{ runtime.cfbs ?? '—' }}</dd>
-                <dt>ringdelay</dt>
-                <dd>{{ runtime.ringdelay != null ? runtime.ringdelay : '—' }}</dd>
-              </dl>
-            </template>
-          </section>
-          <section class="detail-section">
-            <button type="button" class="collapse-trigger" :aria-expanded="advancedOpen" @click="advancedOpen = !advancedOpen">
-              {{ advancedOpen ? '▼' : '▶' }} Advanced
-            </button>
-            <dl v-show="advancedOpen" class="detail-list detail-list-other">
-              <template v-for="[key, value] in otherFields" :key="key">
-                <dt>{{ key }}</dt>
-                <dd>{{ value == null ? '—' : String(value) }}</dd>
-              </template>
-            </dl>
-          </section>
-        </template>
+          </template>
+        </section>
       </div>
     </template>
+
+    <DeleteConfirmModal
+      :show="confirmDeleteOpen"
+      title="Delete extension?"
+      :loading="deleting"
+      @confirm="confirmAndDelete"
+      @cancel="cancelConfirmDelete"
+    >
+      <template #body>
+        <p>Extension <strong>{{ pkey }}</strong> will be permanently deleted. This cannot be undone.</p>
+      </template>
+    </DeleteConfirmModal>
   </div>
 </template>
 
 <style scoped>
-.detail-content {
-  max-width: 36rem;
-}
-.back {
-  margin-bottom: 1rem;
-}
-.back-btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  color: #64748b;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-.back-btn:hover {
-  color: #0f172a;
-  background: #f1f5f9;
+.detail-view {
+  max-width: 52rem;
 }
 .loading,
 .error {
@@ -436,13 +448,47 @@ async function doDelete() {
   font-size: 0.875rem;
   margin: 0;
 }
-.detail-list {
+.detail-content {
   margin-top: 1rem;
+}
+.detail-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 1.5rem 0 0.5rem 0;
+}
+.detail-heading:first-of-type {
+  margin-top: 0;
+}
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.5rem;
+}
+.readonly-identity :deep(.form-field-label),
+.readonly-identity :deep(.form-readonly) {
+  color: #94a3b8;
+}
+.readonly-identity :deep(.form-readonly) {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+.edit-form {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.edit-form.runtime-form {
+  margin-top: 0.5rem;
+}
+.detail-list {
+  margin-top: 0.5rem;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.25rem 2rem;
   font-size: 0.9375rem;
-  max-width: 36rem;
 }
 .detail-list dt {
   font-weight: 500;
@@ -454,140 +500,20 @@ async function doDelete() {
 .detail-section {
   margin-top: 1.5rem;
 }
-.detail-section:first-of-type {
-  margin-top: 1rem;
-}
-.detail-heading {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #334155;
-  margin: 0 0 0.5rem 0;
-}
-.detail-list-other {
-  margin-top: 0.5rem;
-}
-.collapse-trigger {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #334155;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #e2e8f0;
-  cursor: pointer;
-  text-align: left;
-}
-.collapse-trigger:hover {
-  color: #0f172a;
-}
 .toolbar {
   margin: 0 0 0.75rem 0;
 }
-.edit-btn,
-.delete-btn {
+.edit-btn {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
-  margin-right: 0.5rem;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-.edit-btn {
   color: #2563eb;
   background: transparent;
   border: 1px solid #93c5fd;
+  border-radius: 0.375rem;
+  cursor: pointer;
 }
 .edit-btn:hover {
   background: #eff6ff;
-}
-.delete-btn {
-  color: #dc2626;
-  background: transparent;
-  border: 1px solid #fca5a5;
-}
-.delete-btn:hover:not(:disabled) {
-  background: #fef2f2;
-}
-.delete-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-.edit-form {
-  margin-bottom: 1rem;
-  max-width: 24rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.edit-form label {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.edit-label-block {
-  display: block;
-  margin-bottom: 0.25rem;
-}
-/* Segmented pill (binary and limited choice) */
-.switch-toggle.switch-ios {
-  display: flex;
-  flex-wrap: wrap;
-  background: #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 0.25rem;
-  gap: 0;
-}
-.switch-toggle.switch-ios input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.switch-toggle.switch-ios label {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 0.375rem;
-  transition: background-color 0.15s, color 0.15s;
-  color: #64748b;
-}
-.switch-toggle.switch-ios label:hover {
-  color: #334155;
-}
-.switch-toggle.switch-ios input:checked + label {
-  background: white;
-  color: #0f172a;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-.edit-input {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-}
-.edit-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-.detail-readonly {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9375rem;
-  color: #64748b;
-}
-.value-immutable {
-  color: #64748b;
-  background: #f8fafc;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-}
-.detail-list dd.value-immutable {
-  padding: 0.125rem 0.25rem;
-  margin: 0;
 }
 .edit-actions {
   display: flex;
@@ -616,5 +542,17 @@ async function doDelete() {
 }
 .edit-actions button.secondary:hover {
   background: #f1f5f9;
+}
+.edit-actions button.action-delete {
+  color: #fff;
+  background: #dc2626;
+  border: none;
+}
+.edit-actions button.action-delete:hover:not(:disabled) {
+  background: #b91c1c;
+}
+.edit-actions button.action-delete:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 </style>

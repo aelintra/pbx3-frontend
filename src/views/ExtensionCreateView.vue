@@ -1,8 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
+import { useFormValidation, validateAll, focusFirstError } from '@/composables/useFormValidation'
+import { validateExtensionPkey, validateTenant } from '@/utils/validation'
+import { normalizeList } from '@/utils/listResponse'
+import { fieldErrors, firstErrorMessage } from '@/utils/formErrors'
+import FormField from '@/components/forms/FormField.vue'
+import FormSelect from '@/components/forms/FormSelect.vue'
 
 const router = useRouter()
 const toast = useToastStore()
@@ -12,18 +18,13 @@ const cluster = ref('')
 const desc = ref('')
 const macaddr = ref('')
 const tenants = ref([])
+const tenantsLoading = ref(true)
 const error = ref('')
 const loading = ref(false)
+const pkeyInput = ref(null)
 
-function normalizeList(response) {
-  if (Array.isArray(response)) return response
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response.data)) return response.data
-    if (Array.isArray(response.tenants)) return response.tenants
-    if (Object.keys(response).every((k) => /^\d+$/.test(k))) return Object.values(response)
-  }
-  return []
-}
+const pkeyValidation = useFormValidation(pkey, validateExtensionPkey)
+const clusterValidation = useFormValidation(cluster, validateTenant)
 
 const tenantOptions = computed(() => {
   const list = tenants.value.map((t) => t.pkey).filter(Boolean)
@@ -37,24 +38,22 @@ const tenantOptionsForSelect = computed(() => {
   return list
 })
 
+const protocolOptions = ['SIP', 'WebRTC', 'Mailbox']
 const protocolChosen = computed(() => !!protocol.value)
 
-function fieldErrors(err) {
-  if (!err?.data || typeof err.data !== 'object') return null
-  const entries = Object.entries(err.data).filter(([, v]) => Array.isArray(v) && v.length)
-  return entries.length ? Object.fromEntries(entries) : null
-}
-
 async function loadTenants() {
+  tenantsLoading.value = true
   try {
     const response = await getApiClient().get('tenants')
-    tenants.value = normalizeList(response)
+    tenants.value = normalizeList(response, 'tenants')
     if (tenants.value.length && !cluster.value) {
-      const first = tenants.value.find((t) => t.pkey)?.pkey
+      const first = tenants.value.find((t) => t.pkey === 'default')?.pkey ?? tenants.value[0]?.pkey
       if (first) cluster.value = first
     }
   } catch {
     tenants.value = []
+  } finally {
+    tenantsLoading.value = false
   }
 }
 
@@ -63,12 +62,28 @@ onMounted(loadTenants)
 async function onSubmit(e) {
   e.preventDefault()
   error.value = ''
+  if (!protocolChosen.value) {
+    error.value = 'Please choose a protocol'
+    return
+  }
+  const validations = [
+    { ...pkeyValidation, fieldId: 'pkey' },
+    { ...clusterValidation, fieldId: 'cluster' }
+  ]
+  if (!validateAll(validations)) {
+    await nextTick()
+    focusFirstError(validations, (id) => {
+      if (id === 'pkey' && pkeyInput.value) return pkeyInput.value
+      return document.getElementById(id)
+    })
+    return
+  }
   loading.value = true
   try {
     const body = {
       pkey: pkey.value.trim(),
       cluster: cluster.value.trim(),
-      protocol: protocol.value,
+      protocol: protocol.value
     }
     if (desc.value.trim()) body.desc = desc.value.trim()
     if (macaddr.value.trim()) body.macaddr = macaddr.value.trim().replace(/[^0-9a-fA-F]/g, '')
@@ -78,17 +93,27 @@ async function onSubmit(e) {
       toast.show(`Extension ${createdPkey} created`)
       router.push({ name: 'extension-detail', params: { pkey: createdPkey } })
     } else {
-      toast.show('Extension created', 'success')
+      toast.show('Extension created')
       router.push({ name: 'extensions' })
     }
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {
-      const first = Object.values(errors).flat()[0]
-      error.value = first || err.message
-    } else {
-      error.value = err.data?.save?.[0] ?? err.data?.message ?? err.data?.Error ?? err.message ?? 'Failed to create extension'
+      if (errors.pkey) {
+        pkeyValidation.touched.value = true
+        pkeyValidation.error.value = Array.isArray(errors.pkey) ? errors.pkey[0] : errors.pkey
+      }
+      if (errors.cluster) {
+        clusterValidation.touched.value = true
+        clusterValidation.error.value = Array.isArray(errors.cluster) ? errors.cluster[0] : errors.cluster
+      }
+      await nextTick()
+      focusFirstError(
+        [{ ...pkeyValidation, fieldId: 'pkey' }, { ...clusterValidation, fieldId: 'cluster' }],
+        (id) => (id === 'pkey' && pkeyInput.value ? pkeyInput.value : document.getElementById(id))
+      )
     }
+    error.value = firstErrorMessage(err, 'Failed to create extension')
   } finally {
     loading.value = false
   }
@@ -97,71 +122,81 @@ async function onSubmit(e) {
 function goBack() {
   router.push({ name: 'extensions' })
 }
+
+function onKeydown(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    goBack()
+  }
+}
 </script>
 
 <template>
-  <div class="create-view">
-    <p class="back">
-      <button type="button" class="back-btn" @click="goBack">← Extensions</button>
-    </p>
+  <div class="create-view" @keydown="onKeydown">
     <h1>Create extension</h1>
 
     <form class="form" @submit="onSubmit">
-      <label for="protocol" class="form-label">Protocol</label>
-      <select
-        id="protocol"
-        v-model="protocol"
-        class="form-input"
-        aria-label="Choose protocol"
-      >
-        <option value="">Choose protocol</option>
-        <option value="SIP">SIP</option>
-        <option value="WebRTC">WebRTC</option>
-        <option value="Mailbox">Mailbox</option>
-      </select>
+      <p v-if="error" id="extension-create-error" class="error" role="alert">{{ error }}</p>
+
+      <h2 class="detail-heading">Type</h2>
+      <div class="form-fields">
+        <FormSelect
+          id="protocol"
+          v-model="protocol"
+          label="Protocol"
+          :options="protocolOptions"
+          empty-text="Choose protocol"
+          hint="SIP, WebRTC, or Mailbox."
+          aria-label="Choose protocol"
+        />
+      </div>
 
       <template v-if="protocolChosen">
-        <label for="pkey" class="form-label">Extension number</label>
-        <input
-          id="pkey"
-          v-model="pkey"
-          type="text"
-          class="form-input"
-          placeholder="e.g. 1001"
-          required
-          autocomplete="off"
-        />
-
-        <label for="cluster" class="form-label">Tenant</label>
-        <select id="cluster" v-model="cluster" class="form-input" required>
-          <option v-for="opt in tenantOptionsForSelect" :key="opt" :value="opt">{{ opt }}</option>
-        </select>
-
-        <label for="desc" class="form-label">Name</label>
-        <input
-          id="desc"
-          v-model="desc"
-          type="text"
-          class="form-input"
-          placeholder="Short description or display name"
-          autocomplete="off"
-        />
-
-        <label for="macaddr" class="form-label">MAC address (optional)</label>
-        <input
-          id="macaddr"
-          v-model="macaddr"
-          type="text"
-          class="form-input"
-          placeholder="e.g. 001122334455 (12 hex digits)"
-          autocomplete="off"
-        />
+        <h2 class="detail-heading">Identity</h2>
+        <div class="form-fields">
+          <FormField
+            id="pkey"
+            ref="pkeyInput"
+            v-model="pkey"
+            label="Extension number"
+            type="text"
+            placeholder="e.g. 1001"
+            :error="pkeyValidation.error.value"
+            :touched="pkeyValidation.touched.value"
+            :required="true"
+            @blur="pkeyValidation.onBlur"
+          />
+          <FormSelect
+            id="cluster"
+            v-model="cluster"
+            label="Tenant"
+            :options="tenantOptionsForSelect"
+            :error="clusterValidation.error.value"
+            :touched="clusterValidation.touched.value"
+            :required="true"
+            :loading="tenantsLoading"
+            @blur="clusterValidation.onBlur"
+          />
+          <FormField
+            id="desc"
+            v-model="desc"
+            label="Name (optional)"
+            type="text"
+            placeholder="Short description or display name"
+          />
+          <FormField
+            id="macaddr"
+            v-model="macaddr"
+            label="MAC address (optional)"
+            type="text"
+            placeholder="e.g. 001122334455 (12 hex digits)"
+            hint="SIP/WebRTC only. Leave blank for Mailbox."
+          />
+        </div>
       </template>
 
-      <p v-if="error" class="error">{{ error }}</p>
-
       <div class="actions">
-        <button type="submit" :disabled="loading || !protocolChosen">
+        <button type="submit" :disabled="loading || !protocolChosen || tenantsLoading">
           {{ loading ? 'Creating…' : 'Create' }}
         </button>
         <button type="button" class="secondary" @click="goBack">Cancel</button>
@@ -171,43 +206,29 @@ function goBack() {
 </template>
 
 <style scoped>
-.back {
-  margin-bottom: 1rem;
-}
-.back-btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  color: #64748b;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-.back-btn:hover {
-  color: #0f172a;
-  background: #f1f5f9;
+.create-view {
+  max-width: 52rem;
 }
 .form {
   margin-top: 1rem;
-  max-width: 24rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
-.form-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.form-input {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
+.detail-heading {
   font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 1.5rem 0 0.5rem 0;
 }
-.form-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+.detail-heading:first-of-type {
+  margin-top: 0;
+}
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.5rem;
 }
 .error {
   color: #dc2626;

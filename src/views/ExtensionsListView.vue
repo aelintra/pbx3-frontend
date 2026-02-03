@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
+import { normalizeList } from '@/utils/listResponse'
+import { firstErrorMessage } from '@/utils/formErrors'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 
 const toast = useToastStore()
@@ -15,17 +17,6 @@ const confirmDeletePkey = ref(null)
 const filterText = ref('')
 const sortKey = ref('pkey')
 const sortOrder = ref('asc') // 'asc' | 'desc'
-
-function normalizeList(response) {
-  if (Array.isArray(response)) return response
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response.data)) return response.data
-    if (Array.isArray(response.extensions)) return response.extensions
-    if (Array.isArray(response.tenants)) return response.tenants
-    if (Object.keys(response).every((k) => /^\d+$/.test(k))) return Object.values(response)
-  }
-  return []
-}
 
 /** Map cluster id, shortuid, or pkey → tenant pkey for display (always show pkey, not shortuid) */
 const clusterToTenantPkey = computed(() => {
@@ -120,9 +111,9 @@ async function loadExtensions() {
       getApiClient().get('tenants')
     ])
     extensions.value = normalizeList(extResponse)
-    tenants.value = normalizeList(tenantResponse)
+    tenants.value = normalizeList(tenantResponse, 'tenants')
   } catch (err) {
-    error.value = err.data?.message || err.message || 'Failed to load extensions'
+    error.value = firstErrorMessage(err, 'Failed to load extensions')
   } finally {
     loading.value = false
   }
@@ -146,7 +137,7 @@ async function confirmAndDeleteExtension(pkey) {
     await loadExtensions()
     toast.show(`Extension ${pkey} deleted`)
   } catch (err) {
-    deleteError.value = err.data?.message || err.message || 'Failed to delete extension'
+    deleteError.value = firstErrorMessage(err, 'Failed to delete extension')
   } finally {
     confirmDeletePkey.value = null
     deletingPkey.value = null
@@ -214,25 +205,16 @@ onMounted(loadExtensions)
         </thead>
         <tbody>
           <tr v-for="e in sortedExtensions" :key="e.pkey">
-            <td>
-              <router-link :to="{ name: 'extension-detail', params: { pkey: e.pkey } }" class="cell-link">{{ e.pkey }}</router-link>
-            </td>
+            <td>{{ e.pkey }}</td>
             <td class="cell-immutable" title="Immutable">{{ sipIdentityDisplay(e) }}</td>
-            <td>
-              <router-link
-                v-if="tenantPkeyDisplay(e) !== '—'"
-                :to="{ name: 'tenant-detail', params: { pkey: tenantPkeyDisplay(e) } }"
-                class="cell-link"
-              >{{ tenantPkeyDisplay(e) }}</router-link>
-              <span v-else>—</span>
-            </td>
+            <td>{{ tenantPkeyDisplay(e) }}</td>
             <td :title="(e.desc ?? e.cname ?? e.description ?? '')">{{ userDisplay(e) }}</td>
             <td class="cell-immutable" title="Immutable">{{ e.device ?? e.technology ?? '—' }}</td>
             <td class="cell-immutable" :title="e.macaddr ? 'Immutable' : undefined">{{ e.macaddr ? e.macaddr : 'N/A' }}</td>
             <td>{{ e.transport ?? '—' }}</td>
             <td>{{ e.active ?? '—' }}</td>
             <td>
-              <router-link :to="{ name: 'extension-detail', params: { pkey: e.pkey }, query: { edit: '1' } }" class="cell-link cell-link-icon" title="Edit" aria-label="Edit">
+              <router-link :to="{ name: 'extension-detail', params: { pkey: e.pkey } }" class="cell-link cell-link-icon" title="Edit" aria-label="Edit">
                 <span class="action-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>
               </router-link>
             </td>
@@ -399,6 +381,7 @@ onMounted(loadExtensions)
 .toolbar {
   margin: 0.75rem 0 0 0;
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;

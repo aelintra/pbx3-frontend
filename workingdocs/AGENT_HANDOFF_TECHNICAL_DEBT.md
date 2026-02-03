@@ -59,16 +59,16 @@ The plan is in **`workingdocs/PANEL_REFACTOR_STRATEGY.md`**. Summary:
 
 **Reference implementations (already on pattern):**
 
-- **List:** `src/views/IvrsListView.vue`, `src/views/TenantsListView.vue`, `src/views/RoutesListView.vue`, `src/views/InboundRoutesListView.vue`, `src/views/TrunksListView.vue`
-- **Create:** `src/views/IvrCreateView.vue`, `src/views/TenantCreateView.vue`, `src/views/RouteCreateView.vue`, `src/views/InboundRouteCreateView.vue`, `src/views/TrunkCreateView.vue`
-- **Edit:** `src/views/IvrDetailView.vue`, `src/views/TenantDetailView.vue`, `src/views/RouteDetailView.vue`, `src/views/InboundRouteDetailView.vue`, `src/views/TrunkDetailView.vue`
+- **List:** `src/views/IvrsListView.vue`, `src/views/TenantsListView.vue`, `src/views/RoutesListView.vue`, `src/views/InboundRoutesListView.vue`, `src/views/TrunksListView.vue`, `src/views/ExtensionsListView.vue`
+- **Create:** `src/views/IvrCreateView.vue`, `src/views/TenantCreateView.vue`, `src/views/RouteCreateView.vue`, `src/views/InboundRouteCreateView.vue`, `src/views/TrunkCreateView.vue`, `src/views/ExtensionCreateView.vue`
+- **Edit:** `src/views/IvrDetailView.vue`, `src/views/TenantDetailView.vue`, `src/views/RouteDetailView.vue`, `src/views/InboundRouteDetailView.vue`, `src/views/TrunkDetailView.vue`, `src/views/ExtensionDetailView.vue`
 
 ### Shared `normalizeList` (from `@/utils/listResponse.js`)
 
-**Using shared:** TenantsListView, IvrsListView, IvrCreateView, IvrDetailView, RoutesListView, RouteCreateView, RouteDetailView, InboundRoutesListView, InboundRouteCreateView, InboundRouteDetailView, TrunksListView, TrunkCreateView, TrunkDetailView.
+**Using shared:** TenantsListView, IvrsListView, IvrCreateView, IvrDetailView, RoutesListView, RouteCreateView, RouteDetailView, InboundRoutesListView, InboundRouteCreateView, InboundRouteDetailView, TrunksListView, TrunkCreateView, TrunkDetailView, ExtensionsListView, ExtensionCreateView, ExtensionDetailView.
 
 **Still using local `normalizeList` (candidate for migration):**  
-ExtensionsListView, ExtensionDetailView, ExtensionCreateView, AgentsListView, QueuesListView, BackupsListView.
+AgentsListView, QueuesListView, BackupsListView.
 
 → Migrating these: add `import { normalizeList } from '@/utils/listResponse'`, remove the local `function normalizeList(...)` in the file, and call `normalizeList(response)` or `normalizeList(response, 'resourceKey')` as needed (see `listResponse.js` for signature).
 
@@ -82,7 +82,7 @@ ExtensionsListView, ExtensionDetailView, ExtensionCreateView, AgentsListView, Qu
 - **Routes:** List/Create/Edit refactored; use shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage.
 - **Inbound Routes:** List/Create/Edit refactored; shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage; always-edit Detail; validation (validateInboundRoutePkey, validateInboundCarrier).
 - **Trunks:** List/Create/Edit refactored; shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage; always-edit Detail; validation (validateTrunkPkey, validateTenant).
-- **Extensions:** List and Detail use DeleteConfirmModal; list view still has local normalizeList. Create view not yet fully audited against pattern (form components, normalizeList, etc.).
+- **Extensions:** List/Create/Edit refactored; shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage; always-edit Detail with Save/Cancel/Delete; validation (validateExtensionPkey, validateTenant); Detail exposes all API updateable fields (Identity, Transport, Advanced, Runtime).
 - **Agents, Queues:** List views exist; may have local normalizeList and inline delete modal. Create/Detail may need full pattern pass.
 - **Backups:** List only; local normalizeList.
 
@@ -112,6 +112,12 @@ ExtensionsListView, ExtensionDetailView, ExtensionCreateView, AgentsListView, Qu
 2. **Read** `workingdocs/PANEL_REFACTOR_STRATEGY.md` (Phases 1–2 and suggested order).
 3. **Optional:** Migrate remaining list/create/detail views to use shared `normalizeList` from `listResponse.js` (remove local function, add import).
 4. **When touching any panel:** Use the Phase 4 checklist in the strategy doc so the same debt doesn’t come back.
+
+---
+
+## 5a. To debug / TODO
+
+- **Extension runtime (API):** Extension detail panel’s Runtime section (GET/PUT `extensions/{pkey}/runtime` for cfim, cfbs, ringdelay) is not working; issue appears to be in the API. Debug and fix later.
 
 ---
 
