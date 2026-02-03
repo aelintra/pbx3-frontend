@@ -50,7 +50,7 @@ The plan is in **`workingdocs/PANEL_REFACTOR_STRATEGY.md`**. Summary:
 ### Suggested order (from strategy doc)
 
 - Steps **1–6:** Done (listResponse, DeleteConfirmModal, tenantAdvanced.js, ivrDestinations.js; Tenant and IVR Create/Detail refactored).
-- **Step 7:** Quick fixes — Tenant list toolbar `justify-content: space-between`, remove duplicate `.advanced-fields` CSS in TenantCreateView.
+- **Step 7:** ✅ Quick fixes — TenantsListView toolbar `justify-content: space-between`; TenantCreateView duplicate `.advanced-fields` CSS removed.
 - **Step 8:** Apply pattern to next resource (e.g. Extensions) using shared list + modal; repeat for remaining resources.
 
 ---
@@ -106,9 +106,8 @@ RoutesListView, InboundRoutesListView, TrunksListView, ExtensionsListView, Route
 
 1. **Read** `workingdocs/PANEL_PATTERN.md` (sections on List/Create/Edit and the checklist).
 2. **Read** `workingdocs/PANEL_REFACTOR_STRATEGY.md` (Phases 1–2 and suggested order).
-3. **Do Step 7:** TenantsListView toolbar add `justify-content: space-between`; TenantCreateView remove duplicate `.advanced-fields` CSS (if any remains).
-4. **Optional:** Migrate remaining list/create/detail views to use shared `normalizeList` from `listResponse.js` (remove local function, add import).
-5. **When touching any panel:** Use the Phase 4 checklist in the strategy doc so the same debt doesn’t come back.
+3. **Optional:** Migrate remaining list/create/detail views to use shared `normalizeList` from `listResponse.js` (remove local function, add import).
+4. **When touching any panel:** Use the Phase 4 checklist in the strategy doc so the same debt doesn’t come back.
 
 ---
 

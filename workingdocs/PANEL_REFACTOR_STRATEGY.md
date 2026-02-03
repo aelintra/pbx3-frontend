@@ -15,7 +15,7 @@
 - **Phase 1.3** ⬜ Optional `fieldErrors(err)` not done.
 - **Phase 2.1** ✅ `src/constants/tenantAdvanced.js` added; TenantCreateView and TenantDetailView refactored to use it.
 - **Phase 2.2** ✅ `src/constants/ivrDestinations.js` added; IvrCreateView and IvrDetailView refactored to use it.
-- **Step 7** ⬜ Quick fixes: Tenant list toolbar, Tenant Create duplicate `.advanced-fields` CSS.
+- **Step 7** ✅ Quick fixes: TenantsListView toolbar `justify-content: space-between`; TenantCreateView duplicate `.advanced-fields` CSS removed.
 
 ---
 
@@ -141,7 +141,7 @@ When you add a new resource or refactor a panel to the latest pattern, use this 
 | 4 | Refactor IvrsListView + IvrCreateView + IvrDetailView to use both | IVR uses shared pieces | ✅ Done |
 | 5 | Add `src/constants/tenantAdvanced.js`, refactor Tenant Create/Detail to use it | No duplicate advanced config for Tenant | ✅ Done |
 | 6 | Add `src/constants/ivrDestinations.js`, refactor IVR Create/Detail to use it | No duplicate optionEntries/ivrPayload | ✅ Done |
-| 7 | Quick fixes: Tenant list toolbar, Tenant Create duplicate `.advanced-fields` CSS | Consistency and clean CSS | ⬜ |
+| 7 | Quick fixes: Tenant list toolbar, Tenant Create duplicate `.advanced-fields` CSS | Consistency and clean CSS | ✅ Done |
 | 8 | Apply pattern to next resource (e.g. Extensions) **using** shared list + modal + any new resource-specific module | New panels stay debt-free | ⬜ Repeat for each resource |
 
 After step 8, repeat for each remaining resource: use shared list + modal from the start; add a small shared config only when that resource has Create+Detail duplication.

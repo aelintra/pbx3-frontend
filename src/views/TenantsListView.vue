@@ -365,6 +365,7 @@ onMounted(loadTenants)
 .toolbar {
   margin: 0.75rem 0 0 0;
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;

@@ -245,9 +245,6 @@ onMounted(() => {
   gap: 0;
   margin-top: 0.5rem;
 }
-.advanced-fields {
-  margin-top: 0.5rem;
-}
 .error {
   color: #dc2626;
   font-size: 0.875rem;
