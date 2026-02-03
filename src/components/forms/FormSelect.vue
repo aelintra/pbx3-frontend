@@ -105,8 +105,9 @@ function handleBlur() {
         <template v-if="!loading">
           <option v-for="opt in options" :key="opt" :value="opt">{{ opt }}</option>
           <template v-if="optionGroups">
-            <optgroup v-for="(pkeys, group) in optionGroups" :key="group" :label="group" v-if="pkeys && pkeys.length">
-              <option v-for="p in pkeys" :key="p" :value="p">{{ p }}</option>
+            <optgroup v-for="(pkeys, group) in optionGroups" :key="group" :label="group">
+              <option v-for="p in (pkeys && Array.isArray(pkeys) ? pkeys : [])" :key="p" :value="p">{{ p }}</option>
+              <option v-if="!pkeys || !pkeys.length" disabled value="">—</option>
             </optgroup>
           </template>
         </template>

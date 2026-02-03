@@ -62,6 +62,39 @@ export function validateDialplan(value) {
 }
 
 /**
+ * Validate Inbound Route Number (DiD/CLiD pkey)
+ * Asterisk extension: digits, pattern _XZN.!, or special s|i|t. Single "0" not allowed.
+ */
+export function validateInboundRoutePkey(value) {
+  if (!value || !String(value).trim()) {
+    return 'Number (DiD/CLiD) is required'
+  }
+  const trimmed = String(value).trim()
+  if (trimmed === '0') {
+    return 'Number cannot be a single 0'
+  }
+  if (!/^(\d+|_[XZN.!]+|[sit])$/.test(trimmed)) {
+    return 'Must be a valid Asterisk extension: digits, pattern _XZN.! (e.g. _2XXX), or s/i/t'
+  }
+  return null
+}
+
+/**
+ * Validate Inbound Route DDI type (carrier)
+ * Must be DiD or CLID
+ */
+export function validateInboundCarrier(value) {
+  if (!value || !String(value).trim()) {
+    return 'DDI type is required'
+  }
+  const v = String(value).trim()
+  if (v !== 'DiD' && v !== 'CLID') {
+    return 'Must be DiD or CLID'
+  }
+  return null
+}
+
+/**
  * Validate Greeting Number
  * Optional, but if provided must be valid integer >= 0
  */

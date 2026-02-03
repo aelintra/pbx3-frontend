@@ -59,16 +59,16 @@ The plan is in **`workingdocs/PANEL_REFACTOR_STRATEGY.md`**. Summary:
 
 **Reference implementations (already on pattern):**
 
-- **List:** `src/views/IvrsListView.vue`, `src/views/TenantsListView.vue`, `src/views/RoutesListView.vue`
-- **Create:** `src/views/IvrCreateView.vue`, `src/views/TenantCreateView.vue`, `src/views/RouteCreateView.vue`
-- **Edit:** `src/views/IvrDetailView.vue`, `src/views/TenantDetailView.vue`, `src/views/RouteDetailView.vue`
+- **List:** `src/views/IvrsListView.vue`, `src/views/TenantsListView.vue`, `src/views/RoutesListView.vue`, `src/views/InboundRoutesListView.vue`
+- **Create:** `src/views/IvrCreateView.vue`, `src/views/TenantCreateView.vue`, `src/views/RouteCreateView.vue`, `src/views/InboundRouteCreateView.vue`
+- **Edit:** `src/views/IvrDetailView.vue`, `src/views/TenantDetailView.vue`, `src/views/RouteDetailView.vue`, `src/views/InboundRouteDetailView.vue`
 
 ### Shared `normalizeList` (from `@/utils/listResponse.js`)
 
-**Using shared:** TenantsListView, IvrsListView, IvrCreateView, IvrDetailView, RoutesListView, RouteCreateView, RouteDetailView.
+**Using shared:** TenantsListView, IvrsListView, IvrCreateView, IvrDetailView, RoutesListView, RouteCreateView, RouteDetailView, InboundRoutesListView, InboundRouteCreateView, InboundRouteDetailView.
 
 **Still using local `normalizeList` (candidate for migration):**  
-InboundRoutesListView, TrunksListView, ExtensionsListView, InboundRouteDetailView, TrunkDetailView, ExtensionDetailView, ExtensionCreateView, InboundRouteCreateView, AgentsListView, QueuesListView, BackupsListView.
+TrunksListView, ExtensionsListView, TrunkDetailView, ExtensionDetailView, ExtensionCreateView, AgentsListView, QueuesListView, BackupsListView.
 
 → Migrating these: add `import { normalizeList } from '@/utils/listResponse'`, remove the local `function normalizeList(...)` in the file, and call `normalizeList(response)` or `normalizeList(response, 'resourceKey')` as needed (see `listResponse.js` for signature).
 
@@ -79,7 +79,9 @@ InboundRoutesListView, TrunksListView, ExtensionsListView, InboundRouteDetailVie
 ### Full pattern (list + create + edit)
 
 - **Tenant:** List/Create/Edit refactored; **tenantAdvanced.js** in use — no duplicate advanced config. **IVR:** List/Create/Edit refactored; **ivrDestinations.js** in use — no duplicate optionEntries/ivrPayload.
-- **Routes:** List/Create/Edit refactored; use shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage. **InboundRoutes, Trunks, Extensions:** List and Detail use DeleteConfirmModal; list views still have local normalizeList. Create views not yet fully audited against pattern (form components, normalizeList, etc.).
+- **Routes:** List/Create/Edit refactored; use shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage.
+- **Inbound Routes:** List/Create/Edit refactored; shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage; always-edit Detail; validation (validateInboundRoutePkey, validateInboundCarrier).
+- **Trunks, Extensions:** List and Detail use DeleteConfirmModal; list views still have local normalizeList. Create views not yet fully audited against pattern (form components, normalizeList, etc.).
 - **Agents, Queues:** List views exist; may have local normalizeList and inline delete modal. Create/Detail may need full pattern pass.
 - **Backups:** List only; local normalizeList.
 

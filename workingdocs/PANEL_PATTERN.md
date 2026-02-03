@@ -88,11 +88,20 @@ The list panel main heading is typically the resource name plural (e.g. **"Tenan
 All form fields must be implemented with the shared components from `src/components/forms/`:
 
 - **FormField** – text/number inputs (with optional hint, error, required).
-- **FormSelect** – dropdowns (single value from options or option groups).
+- **FormSelect** – dropdowns (single value from options or option groups). When using **optionGroups**, all groups are rendered; groups with no options show a "—" placeholder so the full list of types is always visible.
 - **FormToggle** – YES/NO (or two-value) toggle (checkbox-style).
 - **FormReadonly** – display-only value (e.g. immutable identity fields on Edit).
 
 Use these for every field that fits (text, number, select, boolean/toggle, readonly). Do not replace them with raw HTML form elements for the same purpose.
+
+### Destination dropdowns (FormSelect with optionGroups)
+
+When a form has fields that select a **destination** (e.g. open route, closed route, or similar “send call to” targets), use **FormSelect** with both **options** (flat choices like "None", "Operator") and **optionGroups** (grouped choices by type). Ensure **all** valid destination types are included:
+
+- **Data sources:** Call the destinations API (`GET /destinations?cluster={tenant}`) for Queues, Extensions, IVRs, CustomApps. If the backend also accepts **Routes** (outbound ring groups) as targets, fetch routes (`GET /routes`) and filter by the same tenant/cluster, then add a **Routes** group to the optionGroups object. Do not rely on the destinations API alone if routes are valid targets.
+- **Normalize the API response:** Destinations may be returned with different key casing (e.g. `Queues` vs `queues`). When building the optionGroups object, accept both shapes so the dropdown is populated regardless of server response format.
+- **Show all groups:** FormSelect renders all optgroups in optionGroups; groups with no items show a "—" placeholder so the user always sees the full set of destination types (Queues, Extensions, IVRs, CustomApps, Routes). Do not hide or omit a group just because it is empty.
+- **Reference:** InboundRouteCreateView and InboundRouteDetailView: `destinationGroups` computed from destinations + routes, passed as `option-groups` to FormSelect for open route and closed route.
 
 ### Advanced sections
 
