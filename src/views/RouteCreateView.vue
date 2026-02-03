@@ -1,41 +1,141 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
+import { useFormValidation, validateAll, focusFirstError } from '@/composables/useFormValidation'
+import { validateRoutePkey, validateTenant, validateDialplan } from '@/utils/validation'
+import { normalizeList } from '@/utils/listResponse'
+import { fieldErrors, firstErrorMessage } from '@/utils/formErrors'
+import FormField from '@/components/forms/FormField.vue'
+import FormSelect from '@/components/forms/FormSelect.vue'
+import FormToggle from '@/components/forms/FormToggle.vue'
 
 const router = useRouter()
 const toast = useToastStore()
 const pkey = ref('')
 const cluster = ref('default')
+const desc = ref('')
+const active = ref('YES')
+const auth = ref('NO')
+const dialplan = ref('')
+const path1 = ref('')
+const path2 = ref('')
+const path3 = ref('')
+const path4 = ref('')
+const strategy = ref('hunt')
 const error = ref('')
 const loading = ref(false)
+const tenants = ref([])
+const trunks = ref([])
+const tenantsLoading = ref(true)
+const trunksLoading = ref(true)
+const pkeyInput = ref(null)
 
-function fieldErrors(err) {
-  if (!err?.data || typeof err.data !== 'object') return null
-  const entries = Object.entries(err.data).filter(([, v]) => Array.isArray(v) && v.length)
-  return entries.length ? Object.fromEntries(entries) : null
+const pkeyValidation = useFormValidation(pkey, validateRoutePkey)
+const clusterValidation = useFormValidation(cluster, validateTenant)
+const dialplanValidation = useFormValidation(dialplan, validateDialplan)
+
+const tenantOptions = computed(() => {
+  const list = tenants.value.map((t) => t.pkey).filter(Boolean)
+  return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)))
+})
+
+const tenantOptionsForSelect = computed(() => {
+  const list = tenantOptions.value
+  const cur = cluster.value
+  if (cur && !list.includes(cur)) return [cur, ...list].sort((a, b) => String(a).localeCompare(String(b)))
+  return list
+})
+
+const trunkPkeys = computed(() => {
+  const list = trunks.value.map((t) => t.pkey).filter(Boolean)
+  return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)))
+})
+
+async function loadTenants() {
+  tenantsLoading.value = true
+  try {
+    const response = await getApiClient().get('tenants')
+    tenants.value = normalizeList(response, 'tenants')
+  } catch {
+    tenants.value = []
+  } finally {
+    tenantsLoading.value = false
+  }
+}
+
+async function loadTrunks() {
+  trunksLoading.value = true
+  try {
+    const response = await getApiClient().get('trunks')
+    trunks.value = normalizeList(response, 'trunks') || normalizeList(response)
+  } catch {
+    trunks.value = []
+  } finally {
+    trunksLoading.value = false
+  }
 }
 
 async function onSubmit(e) {
   e.preventDefault()
   error.value = ''
+  const validations = [
+    { ...pkeyValidation, fieldId: 'pkey' },
+    { ...clusterValidation, fieldId: 'cluster' },
+    { ...dialplanValidation, fieldId: 'dialplan' }
+  ]
+  if (!validateAll(validations)) {
+    await nextTick()
+    focusFirstError(validations, (id) => {
+      if (id === 'pkey' && pkeyInput.value) return pkeyInput.value
+      return document.getElementById(id)
+    })
+    return
+  }
   loading.value = true
   try {
     const created = await getApiClient().post('routes', {
       pkey: pkey.value.trim(),
-      cluster: cluster.value.trim()
+      cluster: cluster.value.trim(),
+      desc: desc.value.trim() || undefined,
+      active: active.value,
+      auth: auth.value,
+      dialplan: dialplan.value.trim(),
+      path1: path1.value.trim() || undefined,
+      path2: path2.value.trim() || undefined,
+      path3: path3.value.trim() || undefined,
+      path4: path4.value.trim() || undefined,
+      strategy: strategy.value
     })
     toast.show(`Route ${created.pkey} created`)
     router.push({ name: 'route-detail', params: { pkey: created.pkey } })
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {
-      const first = Object.values(errors).flat()[0]
-      error.value = first || err.message
-    } else {
-      error.value = err.data?.message ?? err.message ?? 'Failed to create route'
+      if (errors.pkey) {
+        pkeyValidation.touched.value = true
+        pkeyValidation.error.value = Array.isArray(errors.pkey) ? errors.pkey[0] : errors.pkey
+      }
+      if (errors.cluster) {
+        clusterValidation.touched.value = true
+        clusterValidation.error.value = Array.isArray(errors.cluster) ? errors.cluster[0] : errors.cluster
+      }
+      if (errors.dialplan) {
+        dialplanValidation.touched.value = true
+        dialplanValidation.error.value = Array.isArray(errors.dialplan) ? errors.dialplan[0] : errors.dialplan
+      }
+      await nextTick()
+      focusFirstError(
+        [
+          { ...pkeyValidation, fieldId: 'pkey' },
+          { ...clusterValidation, fieldId: 'cluster' },
+          { ...dialplanValidation, fieldId: 'dialplan' }
+        ],
+        (id) => (id === 'pkey' && pkeyInput.value ? pkeyInput.value : document.getElementById(id))
+      )
     }
+    error.value = firstErrorMessage(err, 'Failed to create route')
   } finally {
     loading.value = false
   }
@@ -44,39 +144,138 @@ async function onSubmit(e) {
 function goBack() {
   router.push({ name: 'routes' })
 }
+
+function onKeydown(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    goBack()
+  }
+}
+
+onMounted(() => {
+  loadTenants()
+  loadTrunks()
+})
 </script>
 
 <template>
-  <div>
-    <p class="back">
-      <button type="button" class="back-btn" @click="goBack">← Routes</button>
-    </p>
-    <h1>Create route (ring group)</h1>
+  <div class="create-view" @keydown="onKeydown">
+    <h1>Create route</h1>
 
     <form class="form" @submit="onSubmit">
-      <label for="pkey">pkey</label>
-      <input
-        id="pkey"
-        v-model="pkey"
-        type="text"
-        placeholder="e.g. sales-ring"
-        required
-        autocomplete="off"
-      />
+      <p v-if="error" id="route-create-error" class="error" role="alert">{{ error }}</p>
 
-      <label for="cluster">Tenant</label>
-      <input
-        id="cluster"
-        v-model="cluster"
-        type="text"
-        placeholder="e.g. default"
-        required
-      />
+      <h2 class="detail-heading">Identity</h2>
+      <div class="form-fields">
+        <FormField
+          id="pkey"
+          ref="pkeyInput"
+          v-model="pkey"
+          label="Route name"
+          type="text"
+          placeholder="e.g. sales-ring"
+          :error="pkeyValidation.error.value"
+          :touched="pkeyValidation.touched.value"
+          :required="true"
+          hint="Unique identifier for this route (ring group)."
+          @blur="pkeyValidation.onBlur"
+        />
+        <FormSelect
+          id="cluster"
+          v-model="cluster"
+          label="Tenant"
+          :options="tenantOptionsForSelect"
+          :error="clusterValidation.error.value"
+          :touched="clusterValidation.touched.value"
+          :required="true"
+          :loading="tenantsLoading"
+          hint="The tenant this route belongs to."
+          @blur="clusterValidation.onBlur"
+        />
+        <FormField
+          id="desc"
+          v-model="desc"
+          label="Description (optional)"
+          type="text"
+          placeholder="Freeform description"
+        />
+      </div>
 
-      <p v-if="error" class="error">{{ error }}</p>
+      <h2 class="detail-heading">Settings</h2>
+      <div class="form-fields">
+        <FormToggle
+          id="active"
+          v-model="active"
+          label="Active?"
+          yes-value="YES"
+          no-value="NO"
+        />
+        <FormToggle
+          id="auth"
+          v-model="auth"
+          label="Auth (PIN dial)"
+          yes-value="YES"
+          no-value="NO"
+        />
+        <FormSelect
+          id="strategy"
+          v-model="strategy"
+          label="Strategy"
+          :options="['hunt', 'balance']"
+          hint="Ring order: hunt = sequential, balance = round-robin."
+        />
+      </div>
+
+      <h2 class="detail-heading">Dialplan</h2>
+      <div class="form-fields">
+        <FormField
+          id="dialplan"
+          v-model="dialplan"
+          label="Dialplan"
+          type="text"
+          placeholder="_XXXXXX"
+          :error="dialplanValidation.error.value"
+          :touched="dialplanValidation.touched.value"
+          :required="true"
+          hint="Required. Example: _XXXXXX for 6-digit extension matching."
+          @blur="dialplanValidation.onBlur"
+        />
+      </div>
+
+      <h2 class="detail-heading">Paths (trunks)</h2>
+      <div class="form-fields">
+        <FormSelect
+          id="path1"
+          v-model="path1"
+          label="Path 1"
+          :options="trunkPkeys"
+          empty-text="None"
+        />
+        <FormSelect
+          id="path2"
+          v-model="path2"
+          label="Path 2"
+          :options="trunkPkeys"
+          empty-text="None"
+        />
+        <FormSelect
+          id="path3"
+          v-model="path3"
+          label="Path 3"
+          :options="trunkPkeys"
+          empty-text="None"
+        />
+        <FormSelect
+          id="path4"
+          v-model="path4"
+          label="Path 4"
+          :options="trunkPkeys"
+          empty-text="None"
+        />
+      </div>
 
       <div class="actions">
-        <button type="submit" :disabled="loading">
+        <button type="submit" :disabled="loading || tenantsLoading || trunksLoading">
           {{ loading ? 'Creating…' : 'Create' }}
         </button>
         <button type="button" class="secondary" @click="goBack">Cancel</button>
@@ -86,43 +285,29 @@ function goBack() {
 </template>
 
 <style scoped>
-.back {
-  margin-bottom: 1rem;
-}
-.back-btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  color: #64748b;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-.back-btn:hover {
-  color: #0f172a;
-  background: #f1f5f9;
+.create-view {
+  max-width: 52rem;
 }
 .form {
   margin-top: 1rem;
-  max-width: 24rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
-.form label {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.form input {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
+.detail-heading {
   font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 1.5rem 0 0.5rem 0;
 }
-.form input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+.detail-heading:first-of-type {
+  margin-top: 0;
+}
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.5rem;
 }
 .error {
   color: #dc2626;

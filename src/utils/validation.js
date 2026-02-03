@@ -40,6 +40,28 @@ export function validateTenantPkey(value) {
 }
 
 /**
+ * Validate Route name (pkey) for create
+ * Required, non-empty
+ */
+export function validateRoutePkey(value) {
+  if (!value || !value.trim()) {
+    return 'Route name is required'
+  }
+  return null
+}
+
+/**
+ * Validate Route dialplan
+ * Required; route will not work without it (e.g. _XXXXXX)
+ */
+export function validateDialplan(value) {
+  if (!value || !value.trim()) {
+    return 'Dialplan is required (e.g. _XXXXXX)'
+  }
+  return null
+}
+
+/**
  * Validate Greeting Number
  * Optional, but if provided must be valid integer >= 0
  */

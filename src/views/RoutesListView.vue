@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
+import { normalizeList } from '@/utils/listResponse'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 
 const toast = useToastStore()
@@ -15,17 +16,6 @@ const confirmDeletePkey = ref(null)
 const filterText = ref('')
 const sortKey = ref('pkey')
 const sortOrder = ref('asc') // 'asc' | 'desc'
-
-function normalizeList(response) {
-  if (Array.isArray(response)) return response
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response.data)) return response.data
-    if (Array.isArray(response.routes)) return response.routes
-    if (Array.isArray(response.tenants)) return response.tenants
-    if (Object.keys(response).every((k) => /^\d+$/.test(k))) return Object.values(response)
-  }
-  return []
-}
 
 /** Map cluster id, shortuid, or pkey → tenant pkey for display (always show pkey, not shortuid). */
 const clusterToTenantPkey = computed(() => {
@@ -111,8 +101,8 @@ async function loadRoutes() {
       getApiClient().get('routes'),
       getApiClient().get('tenants')
     ])
-    routes.value = normalizeList(routeResponse)
-    tenants.value = normalizeList(tenantResponse)
+    routes.value = normalizeList(routeResponse, 'routes')
+    tenants.value = normalizeList(tenantResponse, 'tenants')
   } catch (err) {
     error.value = err.data?.message || err.message || 'Failed to load routes'
   } finally {
@@ -151,7 +141,7 @@ onMounted(loadRoutes)
 <template>
   <div class="list-view">
     <header class="list-header">
-      <h1>Routes (ring groups)</h1>
+      <h1>Routes (Outbound)</h1>
       <p class="toolbar">
         <router-link :to="{ name: 'route-create' }" class="add-btn">Create</router-link>
         <input
@@ -197,22 +187,13 @@ onMounted(loadRoutes)
         </thead>
         <tbody>
           <tr v-for="r in sortedRoutes" :key="r.pkey">
-            <td>
-              <router-link :to="{ name: 'route-detail', params: { pkey: r.pkey } }" class="cell-link">{{ r.pkey }}</router-link>
-            </td>
+            <td>{{ r.pkey }}</td>
             <td class="cell-immutable" title="Immutable">{{ localUidDisplay(r) }}</td>
-            <td>
-              <router-link
-                v-if="tenantPkeyDisplay(r) !== '—'"
-                :to="{ name: 'tenant-detail', params: { pkey: tenantPkeyDisplay(r) } }"
-                class="cell-link"
-              >{{ tenantPkeyDisplay(r) }}</router-link>
-              <span v-else>—</span>
-            </td>
+            <td>{{ tenantPkeyDisplay(r) }}</td>
             <td>{{ r.desc ?? r.description ?? '—' }}</td>
             <td>{{ r.active ?? '—' }}</td>
             <td>
-              <router-link :to="{ name: 'route-detail', params: { pkey: r.pkey }, query: { edit: '1' } }" class="cell-link cell-link-icon" title="Edit" aria-label="Edit">
+              <router-link :to="{ name: 'route-detail', params: { pkey: r.pkey } }" class="cell-link cell-link-icon" title="Edit" aria-label="Edit">
                 <span class="action-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>
               </router-link>
             </td>
@@ -378,6 +359,7 @@ onMounted(loadRoutes)
 .toolbar {
   margin: 0.75rem 0 0 0;
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;

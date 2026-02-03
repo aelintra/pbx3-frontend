@@ -16,6 +16,7 @@
 - **Phase 2.1** ✅ `src/constants/tenantAdvanced.js` added; TenantCreateView and TenantDetailView refactored to use it.
 - **Phase 2.2** ✅ `src/constants/ivrDestinations.js` added; IvrCreateView and IvrDetailView refactored to use it.
 - **Step 7** ✅ Quick fixes: TenantsListView toolbar `justify-content: space-between`; TenantCreateView duplicate `.advanced-fields` CSS removed.
+- **Step 8 (Routes)** ✅ Routes panels: RoutesListView, RouteCreateView, RouteDetailView refactored to full pattern (shared normalizeList, form components, DeleteConfirmModal, firstErrorMessage).
 
 ---
 

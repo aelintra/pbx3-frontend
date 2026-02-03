@@ -1,11 +1,12 @@
 # Standardized Panel Design Pattern
 
-**Last Updated**: 2026-02-02  
+**Last Updated**: 2026-02-03  
 **Based on**: IVR CRUD panels implementation (refactored with reusable components)  
 **Status**: Pattern established and documented, ready for application to all panels
 
 **Important**: 
 - **You must use the reusable form components** for all form fields: `FormField`, `FormSelect`, `FormToggle`, `FormReadonly` (from `src/components/forms/`). Do not use raw `<label>` + `<input>` / `<select>` for fields that these components can represent. Use them so that layout, accessibility, and behaviour stay consistent across panels.
+- **Editable fields must match the API:** Create and Edit panels must expose an editable form field for **every** field that the API accepts on create (POST) or update (PUT). Do not omit API-editable fields from the UI. Check the backend controller’s create/update validation (e.g. `updateableColumns` or request rules) and ensure each accepted field has a corresponding FormField, FormSelect, or FormToggle. Immutable fields (e.g. primary key, id, shortuid) use FormReadonly on Edit only.
 - This pattern also uses the `useFormValidation` composable where validation is needed.
 - Do NOT use the old table-based approach for form fields.
 - Always declare refs BEFORE validation composables.
@@ -35,6 +36,10 @@ Every resource has **exactly three panels**. Use the same structure as the IVR p
 
 There is **no fourth panel** (e.g. no "item list" or intermediate list). Navigation is: **List ↔ Create** and **List ↔ Edit** only.
 
+### Create panel: heading
+
+The Create panel main heading must be **"Create {resource}"** in singular, lowercase (e.g. **"Create route"**, **"Create tenant"**, **"Create IVR"**). Do not add extra parentheticals (e.g. avoid "Create route (ring group)"); keep it short.
+
 ### Edit panel: heading
 
 The Edit panel main heading must be **"Edit {Panel name} {Object name}"**.
@@ -52,11 +57,24 @@ Use a single `<h1>`; e.g. `Edit {Resource} {{ displayName || pkey }}` where `dis
 - **Labels**: Save / "Saving…"; Cancel; Delete / "Deleting…". Use exactly **"Delete"** (not resource-specific text like "Delete tenant" or "Delete IVR").
 - **Delete style**: Red filled button: **red background** (e.g. `#dc2626`), **white text**, no border; hover a darker red (e.g. `#b91c1c`). Same visual weight as the Save button but red to indicate a destructive action. Use class `action-delete` for the Delete button.
 
+### List panel: heading
+
+The list panel main heading is typically the resource name plural (e.g. **"Tenants"**, **"IVRs"**). When the app has similar resources that need disambiguation, add it in parentheses (e.g. **"Routes (Outbound)"** to distinguish from inbound routes; **"Inbound routes"** for the other). Use a single `<h1>`.
+
 ### List view: links to Edit only via the Edit action
 
 - The **primary key / name column** in the list must **not** be a link. Show the value as plain text (e.g. `{{ item.pkey }}`).
 - **Only the Edit action** (icon or button in the Edit column) must link to the Edit panel (`{resource}-detail`). Do not link the row item name to the edit panel.
 - Reference: `IvrsListView.vue` (name column is plain text; Edit icon is the only link to `ivr-detail`).
+
+### API field parity (editable fields)
+
+- **Every editable field in the API object must have a form control** in the Create and Edit panels. When adding or refactoring a panel:
+  1. Identify all fields the API accepts on create (POST body) and update (PUT body)—e.g. from the backend controller’s validation rules or `updateableColumns`.
+  2. For each such field, add a corresponding FormField, FormSelect, or FormToggle (or FormReadonly for immutable fields on Edit only).
+  3. Ensure Create and Edit send and receive the same set of editable fields; Create may omit fields that have sensible server defaults, but if the API accepts them, the UI should allow setting them so Create and Edit stay in sync.
+- Do not leave API-editable fields out of the UI. Omissions lead to incomplete editing and inconsistent behaviour between Create and Edit.
+- **Required fields that affect behaviour:** If a field is required for the resource to work (e.g. a dialplan pattern without which the route will not function), mark it **required** in the UI, add a validator in `src/utils/validation.js`, and validate on Create (and block save on Edit if empty). Use the **placeholder** and **hint** to show an example value (e.g. `_XXXXXX` for dialplan). Do not label such fields as optional.
 
 ### Form layout: one row per field (same as IVR)
 
