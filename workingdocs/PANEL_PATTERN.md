@@ -31,8 +31,8 @@ Every resource has **exactly three panels**. Use the same structure as the IVR p
 ### The three panels
 
 1. **Main list** (`{Resource}ListView.vue`) – Table (or list) of all items. Toolbar: Create button, filter. Rows: columns + Edit action + Delete action.
-2. **Create** (`{Resource}CreateView.vue`) – Single form to create one item. No top-level back link; use Cancel in the form to return to the list.
-3. **Edit** (`{Resource}DetailView.vue`) – Single form to view and edit one item (immutable fields with FormReadonly, editable with FormField/FormSelect/FormToggle). **All edit panels must have three buttons at the bottom of the form: Save, Cancel, and Delete.** Delete is placed alongside Save and Cancel in `.edit-actions`, not in a toolbar at the top. No separate "view" panel; no link from the list that goes to a different "item list" panel.
+2. **Create** (`{Resource}CreateView.vue`) – Single form to create one item. No top-level back link; use Cancel in the form to return to the list. **Action buttons (Create, Cancel) must appear at both the top and bottom of the form.**
+3. **Edit** (`{Resource}DetailView.vue`) – Single form to view and edit one item (immutable fields with FormReadonly, editable with FormField/FormSelect/FormToggle). **All edit panels must have three buttons (Save, Cancel, Delete) at both the top and bottom of the form.** Delete is placed alongside Save and Cancel in `.edit-actions`, not in a toolbar at the top. No separate "view" panel; no link from the list that goes to a different "item list" panel.
 
 There is **no fourth panel** (e.g. no "item list" or intermediate list). Navigation is: **List ↔ Create** and **List ↔ Edit** only.
 
@@ -54,6 +54,7 @@ Use a single `<h1>`; e.g. `Edit {Resource} {{ displayName || pkey }}` where `dis
 **All edit panels must include exactly three buttons** at the bottom of the form (in `.edit-actions`): **Save**, **Cancel**, and **Delete**. Do not omit the Delete button; if delete is not allowed for a specific item (e.g. the default tenant), disable the Delete button and show an error message when the user clicks it, or open the confirmation modal with a message that the item cannot be deleted.
 
 - **Placement**: All three buttons sit in the same row at the **bottom** of the form (inside `.edit-actions`). Do not put Delete in a toolbar at the top.
+- **Top and bottom**: **Repeat the same action row at the top of the form** (e.g. immediately after the form-level error message, before the first section heading). Use the same class `.edit-actions` and add `.edit-actions-top` so the row appears both above the form content and at the bottom. This way the user always sees Save/Cancel/Delete without scrolling.
 - **Labels**: Save / "Saving…"; Cancel; Delete / "Deleting…". Use exactly **"Delete"** (not resource-specific text like "Delete tenant" or "Delete IVR").
 - **Delete style**: Red filled button: **red background** (e.g. `#dc2626`), **white text**, no border; hover a darker red (e.g. `#b91c1c`). Same visual weight as the Save button but red to indicate a destructive action. Use class `action-delete` for the Delete button.
 
@@ -797,6 +798,11 @@ function syncEditFromResource() {
     <form class="form" @submit="onSubmit" @keydown="onKeydown">
       <p v-if="error" id="{resource}-create-error" class="error" role="alert">{{ error }}</p>
 
+      <div class="actions actions-top">
+        <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create' }}</button>
+        <button type="button" class="secondary" @click="goBack">Cancel</button>
+      </div>
+
       <h2 class="detail-heading">Identity</h2>
       <div class="form-fields">
         <FormField
@@ -879,6 +885,7 @@ function syncEditFromResource() {
 **Actions:**
 - Submit button: Primary style, shows loading state ("Creating…")
 - Cancel button: Secondary style, navigates back
+- **Top and bottom**: **Repeat the same action row (Create, Cancel) at the top of the form** (e.g. immediately after the form-level error message, before the first section heading). Use the same class `.actions` and add `.actions-top`. The same row also appears at the bottom of the form. This way the user always sees Create/Cancel without scrolling.
 
 ### Field Order (Identity Section)
 
@@ -1635,7 +1642,8 @@ When applying this pattern to existing panels:
 - [ ] Remove pkey link from list (name column plain text; navigation via edit icon only)
 - [ ] Update create view structure (Identity → Settings using form components)
 - [ ] Update edit view heading format ("Edit {Resource} {name}")
-- [ ] Ensure edit view has all three buttons: Save, Cancel, and Delete (in `.edit-actions`)
+- [ ] Ensure edit view has all three buttons: Save, Cancel, and Delete (in `.edit-actions`); **repeat the same action row at the top** (e.g. after saveError, before first section) with `.edit-actions-top`
+- [ ] **Create/Edit:** Action buttons (Create/Save, Cancel, and Delete on edit) appear at **both top and bottom** of the form
 - [ ] Remove read-only view from edit (always open in edit mode)
 - [ ] Replace manual fields with FormField/FormSelect/FormToggle components
 - [ ] Use FormReadonly for immutable and "set-at-create-only" fields in edit view (Identity section, low-light `readonly-identity`)

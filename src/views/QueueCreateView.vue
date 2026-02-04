@@ -62,6 +62,13 @@ function goBack() {
     <h1>Create queue</h1>
 
     <form class="form" @submit="onSubmit">
+      <div class="actions actions-top">
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Creating…' : 'Create' }}
+        </button>
+        <button type="button" class="secondary" @click="goBack">Cancel</button>
+      </div>
+
       <label for="pkey">pkey</label>
       <input
         id="pkey"

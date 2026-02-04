@@ -280,6 +280,13 @@ onMounted(async () => {
     <form class="form" @submit="onSubmit" @keydown="onKeydown">
       <p v-if="error" id="ivr-create-error" class="error" role="alert">{{ error }}</p>
 
+      <div class="actions actions-top">
+        <button type="submit" :disabled="loading || tenantsLoading || destinationsLoading || greetingsLoading">
+          {{ loading ? 'Creating…' : 'Create' }}
+        </button>
+        <button type="button" class="secondary" @click="goBack">Cancel</button>
+      </div>
+
       <h2 class="detail-heading">Identity</h2>
       <div class="form-fields">
         <FormField

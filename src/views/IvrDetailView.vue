@@ -314,6 +314,14 @@ async function confirmAndDelete() {
         <form class="edit-form" @submit="saveEdit">
           <p v-if="saveError" id="ivr-edit-error" class="error" role="alert">{{ saveError }}</p>
 
+          <div class="edit-actions edit-actions-top">
+            <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+            <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
+            <button type="button" class="action-delete" :disabled="deleting" @click="askConfirmDelete">
+              {{ deleting ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+
           <h2 class="detail-heading">Identity</h2>
           <div class="form-fields">
             <FormReadonly

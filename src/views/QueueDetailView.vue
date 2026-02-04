@@ -122,6 +122,11 @@ const detailFields = computed(() => {
       </p>
       <p v-if="deleteError" class="error">{{ deleteError }}</p>
       <form v-else-if="editing" class="edit-form" @submit="saveEdit">
+        <div class="edit-actions edit-actions-top">
+          <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+          <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
+        </div>
+
         <label for="edit-cluster">cluster</label>
         <input id="edit-cluster" v-model="editCluster" type="text" class="edit-input" required />
         <label for="edit-conf">conf (optional)</label>

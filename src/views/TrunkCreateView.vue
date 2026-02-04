@@ -198,6 +198,13 @@ function onKeydown(e) {
     <form class="form" @submit="onSubmit">
       <p v-if="error" id="trunk-create-error" class="error" role="alert">{{ error }}</p>
 
+      <div class="actions actions-top">
+        <button type="submit" :disabled="loading || tenantsLoading || !typeChosen">
+          {{ loading ? 'Creating…' : 'Create' }}
+        </button>
+        <button type="button" class="secondary" @click="goBack">Cancel</button>
+      </div>
+
       <h2 class="detail-heading">Type</h2>
       <div class="form-fields">
         <FormSelect

@@ -124,6 +124,13 @@ onMounted(() => {
     <form class="form create-form" @submit="onSubmit" @keydown="onKeydown">
       <p v-if="error" id="tenant-create-error" class="error" role="alert">{{ error }}</p>
 
+      <div class="actions actions-top">
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Creating…' : 'Create' }}
+        </button>
+        <button type="button" class="secondary" @click="goBack">Cancel</button>
+      </div>
+
       <h2 class="detail-heading">Identity</h2>
       <div class="form-fields">
         <FormField
