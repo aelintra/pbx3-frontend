@@ -101,6 +101,8 @@ async function onSubmit(e) {
     await getApiClient().post('extensions', body)
     toast.show(`Extension ${pkey.value.trim()} created`)
     resetForm()
+    await nextTick()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {

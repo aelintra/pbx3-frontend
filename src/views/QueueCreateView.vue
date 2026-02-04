@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
@@ -34,6 +34,8 @@ async function onSubmit(e) {
     })
     toast.show(`Queue ${pkey.value.trim()} created`)
     resetForm()
+    await nextTick()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {

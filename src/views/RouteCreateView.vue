@@ -128,6 +128,8 @@ async function onSubmit(e) {
     })
     toast.show(`Route ${pkey.value.trim()} created`)
     resetForm()
+    await nextTick()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {

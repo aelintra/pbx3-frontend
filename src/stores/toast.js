@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-const TOAST_TTL_MS = 1000
+const TOAST_TTL_MS = 2000
 
 export const useToastStore = defineStore('toast', {
   state: () => ({
@@ -16,8 +16,8 @@ export const useToastStore = defineStore('toast', {
     show(message, variant = 'success') {
       const id = Date.now()
       this.toasts.push({ id, message, variant })
-      // Auto-dismiss after 1 second (TOAST_TTL_MS)
-      setTimeout(() => this.dismiss(id), 1000)
+      // Auto-dismiss after TOAST_TTL_MS
+      setTimeout(() => this.dismiss(id), TOAST_TTL_MS)
     },
 
     dismiss(id) {

@@ -183,6 +183,8 @@ async function onSubmit(e) {
     toast.show(`Agent ${pkeyNum} created`)
     successMessage.value = `Agent ${pkeyNum} created. Create another or Cancel to exit.`
     loading.value = false
+    await nextTick()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     // Defer reset to avoid Vue internal emitsOptions error; then bump key in a
     // second tick so fields re-mount after refs have flushed.
     setTimeout(() => {

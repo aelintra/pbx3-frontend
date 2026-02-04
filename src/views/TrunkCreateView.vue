@@ -154,6 +154,8 @@ async function onSubmit(e) {
     await getApiClient().post('trunks', body)
     toast.show(`Trunk ${pkey.value.trim()} created`)
     resetForm()
+    await nextTick()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     const errors = fieldErrors(err)
     if (errors) {
