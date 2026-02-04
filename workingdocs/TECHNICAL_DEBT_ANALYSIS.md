@@ -1,8 +1,9 @@
 # Technical Debt Analysis: IVR Panel Pattern
 
 **Date**: 2026-02-02  
-**Status**: Pre-standardization review  
-**Purpose**: Identify weaknesses before committing pattern as standard
+**Updated**: 2026-02-03 — added *Deferred Debt & Final-Pass Strategy* (Agents panel; demo-first approach).  
+**Status**: Pre-standardization review; panel refactors in progress; deferred debt recorded for final pass.  
+**Purpose**: Identify weaknesses before committing pattern as standard; record deferred debt per panel for post-demo cleanup.
 
 ---
 
@@ -506,6 +507,39 @@ Before standardizing, ensure:
 - [ ] IVR panels work with new pattern
 - [ ] Performance is acceptable
 - [ ] Accessibility is improved
+
+---
+
+## Deferred Debt & Final-Pass Strategy
+
+**Approach:** Prioritise reaching a **demonstrable system** first. Known technical debt is recorded here and in panel-specific docs but not necessarily fixed before demo. A **final debt analysis** will be done once we have a running demo.
+
+**Rationale:**
+- More **commonality** may emerge as we build out more panels (e.g. queue/tenant patterns, shared composables). A single **final pass** after more panels exist may yield better extractions and less rework.
+- Fixing debt in isolation now could be superseded by that later commonality.
+- A working demo gives a stable baseline to validate any final refactors against.
+
+**When to do the final pass:** After the app is demonstrable end-to-end; use the checklist in `PANEL_REFACTOR_STRATEGY.md` and the panel-specific debt docs below.
+
+### Panel-specific deferred debt
+
+#### Agents panel
+
+**Detail:** `workingdocs/TECHNICAL_DEBT_AGENTS_PANEL.md`
+
+**Summary (deferred until final pass):**
+
+| Priority | Item | Notes |
+|--------|------|------|
+| **High** | AgentDetailView: add `useFormValidation` for Tenant, Name, Password; map API field errors and use `focusFirstError` | Edit panel currently has no composable validation or field-level error mapping on save |
+| **Medium** | AgentDetailView: resolve `cluster` to tenant pkey when loading (defensive; match other panels) | If API ever returns shortuid, dropdown would show it |
+| **Medium** | Create + Detail: shared queue helpers / composable; use same `normalizeQueueForSave` in Create | Duplication and Create doesn’t normalize `'-'`/`'None'` to `null` on submit |
+| **Low** | AgentCreateView: remove or document `DEBUG_AGENT_RESET` and `:debug-reset` | Debug-only; harmless when false |
+| **Low** | List/Detail: optional consistency (tenant map style, DeleteConfirmModal props) | Cosmetic |
+
+Agents list/create/detail are **on-pattern** for shared `normalizeList`, `DeleteConfirmModal`, form components, stay-on-create-and-reset, and queue display; the items above are incremental improvements for validation, error handling, and DRY.
+
+*Other panels:* As we add or refactor more panels (e.g. Queues), add their deferred-debt summaries here or link to a `TECHNICAL_DEBT_<PANEL>.md` so the final pass has a single checklist.
 
 ---
 

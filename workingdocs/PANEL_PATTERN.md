@@ -69,14 +69,14 @@ The list panel main heading is typically the resource name plural (e.g. **"Tenan
 
 ### API field parity (editable fields)
 
-- **Every field the API accepts must have a form control** in the Create and/or Edit panels. Do not omit fields.
+- **Every field the API accepts must have a form control** in the Create and/or Edit panels. **Create an editable form control (FormField / FormSelect / FormToggle) for every editable field in the API object;** do not omit fields.
 - **Field parity checklist (mandatory when adding or refactoring a panel):**
   1. **List all API-accepted fields** from the backend: controller’s `updateableColumns` (or equivalent) and/or FormRequest validation rules for create (POST) and update (PUT). Optionally cross-check with the resource’s database schema (e.g. `full_schema.sql`) to catch columns that exist but might be missing from the controller’s list.
   2. **For each field**, decide:
      - **Editable on Create:** FormField / FormSelect / FormToggle; include in POST body.
      - **Editable on Edit:** FormField / FormSelect / FormToggle; include in PUT body.
      - **Set at create only (read-only on Edit):** On Create, include in POST body. On Edit, show with **FormReadonly** in the Identity section (with other non-updateable fields) and **do not** include in the PUT body. Style with low-light (e.g. class `readonly-identity`).
-     - **Immutable (never editable):** e.g. pkey, id, shortuid. On Edit only: FormReadonly in Identity section with low-light styling.
+     - **Immutable (never editable):** e.g. pkey, id, shortuid — **only for fields the API actually returns**. Not every resource has `id` or `shortuid`; show FormReadonly in the Identity section only for fields present on the resource (e.g. Agent has `pkey` but no `shortuid`/`id`). On Edit only: FormReadonly in Identity section with low-light styling.
   3. **Verify:** No field in the API list is missing from the UI; no extra field is sent on PUT that the API does not accept (or that the product explicitly keeps read-only on edit).
 - **Required fields that affect behaviour:** If a field is required for the resource to work (e.g. a dialplan pattern without which the route will not function), mark it **required** in the UI, add a validator in `src/utils/validation.js`, and validate on Create (and block save on Edit if empty). Use the **placeholder** and **hint** to show an example value (e.g. `_XXXXXX` for dialplan). Do not label such fields as optional.
 
@@ -308,6 +308,57 @@ function tenantDisplay(item) {
   const c = item.cluster
   if (c == null || c === '') return '—'
   return tenantShortuidToPkey.value[String(c)] ?? c
+}
+```
+
+### Tenant resolution for queue dropdowns (e.g. Agents)
+
+**Problem**: The agent (or similar resource) stores tenant as `cluster` (often the tenant **pkey**). Queues are scoped by `queue.cluster`, which is the tenant **shortuid**. So when building queue options for an agent's tenant, you must filter queues by the tenant's **shortuid**, not pkey.
+
+**Solution**: Resolve the current tenant (pkey from the form) to that tenant's shortuid, then filter queues by `String(q.cluster).trim() === tenantShortuid`.
+
+```javascript
+// In Agent Create/Edit: cluster (or editCluster) is tenant pkey
+const tenantShortuid = computed(() => {
+  const p = cluster.value  // or editCluster.value
+  if (!p) return ''
+  const t = tenants.value.find((x) => String(x.pkey) === String(p) || String(x.shortuid) === String(p))
+  return t?.shortuid ? String(t.shortuid).trim() : (String(p).trim() === p ? p : '')
+})
+
+const queueOptionsForTenant = computed(() => {
+  const sid = tenantShortuid.value
+  if (!sid) return []
+  const list = queues.value.filter((q) => String(q.cluster || '').trim() === sid)
+  return [...new Set(list.map((q) => q.pkey).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)))
+})
+```
+
+Use `queueOptionsForTenant` for queue dropdowns and `empty-text="None"` so a single "None" option appears when the user clears the selection.
+
+### Empty queue / optional choice normalization
+
+When a resource has optional queue (or similar) fields that can be "none":
+
+- **Display (list or readonly):** Show `'None'` for `null`, `''`, or `'-'` (not em dash '—'). Use a helper, e.g. `displayQueue(v) => (v == null || v === '' || v === '-' ? 'None' : String(v).trim())`.
+- **Load (Edit form):** Normalize API values to form empty string: `null`, `''`, `'-'`, `'None'` → `''` so the dropdown shows "None".
+- **Save (Create/Edit payload):** Normalize form empty to API: `''`, `'-'`, `'None'` → `null` (or omit) so the API receives a clear "no selection" value.
+
+Example helpers:
+
+```javascript
+function displayQueue(v) {
+  if (v == null || v === '' || v === '-') return 'None'
+  return String(v).trim()
+}
+function normalizeQueueFromApi(v) {
+  if (v == null || v === '' || v === '-' || String(v).trim().toLowerCase() === 'none') return ''
+  return String(v).trim()
+}
+function normalizeQueueForSave(v) {
+  const s = String(v ?? '').trim()
+  if (s === '' || s === '-' || s.toLowerCase() === 'none') return null
+  return s
 }
 ```
 
@@ -1001,8 +1052,8 @@ function syncEditFromResource() {
 ### Field Order (Identity Section - Edit)
 
 1. Primary identifier (readonly, immutable) — use class `readonly-identity` for low-light
-2. Local UID (readonly, immutable) — `readonly-identity`
-3. KSUID (readonly, immutable) — `readonly-identity`
+2. Local UID (readonly, immutable) — `readonly-identity` — **only if the API returns it** (e.g. many resources have it; Agent does not)
+3. KSUID (readonly, immutable) — `readonly-identity` — **only if the API returns it**
 4. Any other read-only-in-edit fields (e.g. Transport) — `readonly-identity`; do not include in save payload
 5. Tenant (editable dropdown)
 6. Description (optional, editable)
@@ -1511,7 +1562,7 @@ watch(editCluster, () => {
 
 ### After Create
 - Show toast: `"{Resource} {pkey} created"`
-- Navigate to detail view (edit mode)
+- **Either:** Navigate to detail view (edit mode), **or** (if the product prefers) **stay on create**: reset the form to defaults, show an advisory (e.g. "{Resource} {pkey} created. Create another or Cancel to exit."), and keep the user on the create panel. Cancel returns to the list. Use a `fieldsKey` ref passed as `:input-key` to form components and increment after reset to force re-mount so all fields clear visually.
 
 ### After Edit
 - Show toast: `"{Resource} {pkey} saved"`
